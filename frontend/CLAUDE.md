@@ -32,7 +32,7 @@
 - **Interactions:** Every button must have a springy hover/tap effect: `whileHover={{ scale: 1.05 }}`.
 
 ## 🕹️ Stitch MCP Integration
-- Always reference the **Stitch project "Glimmer Boutique"** via MCP for layout measurements.
+- Always reference the **Stitch project "Fashion Story"** via MCP for layout measurements.
 - Map Stitch tokens directly to Tailwind (e.g., `gap-4`, `p-8`).
 - Translate Stitch static frames into functional React components using the 21st.dev style.
 
