@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, User, LogOut,
   Layers, RefreshCw, LayoutGrid, Target,
   Zap, TrendingUp, Gem, Star,
   Home, Calendar, Settings, BarChart2,
+  CheckCircle2, Circle, Loader2,
 } from 'lucide-react'
 import {
   SPRING,
@@ -227,16 +228,38 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
   const repeatSaved = useSaved()
   const slotSaved   = useSaved()
   const goalSaved   = useSaved()
-  const [optimizing, setOptimizing] = useState(false)
   const optimizeSaved = useSaved()
+
+  /* ── Optimization progress overlay ── */
+  const STEPS = [
+    { id: 'load',    label: 'Loading shop data',        detail: 'Fetching inventory & schedule…' },
+    { id: 'analyze', label: 'Analyzing your schedule',  detail: 'Mapping available time slots…'  },
+    { id: 'run',     label: 'Running optimization',     detail: 'Crunching the numbers…'         },
+    { id: 'finalize',label: 'Finalizing results',       detail: 'Building your optimal timeline…'},
+  ]
+  type OverlayState = 'idle' | 'running' | 'done'
+  const [overlayState, setOverlayState] = useState<OverlayState>('idle')
+  const [stepIdx, setStepIdx] = useState(0)
+  const stepTimers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const shouldReduce = useReducedMotion() ?? false
 
   const handleOptimize = () => {
-    if (optimizing) return
-    setOptimizing(true)
-    setTimeout(() => { setOptimizing(false); optimizeSaved.trigger() }, 1600)
+    if (overlayState !== 'idle') return
+    setStepIdx(0)
+    setOverlayState('running')
+    // Advance one step every ~1.1 s, then mark done
+    stepTimers.current.forEach(clearTimeout)
+    stepTimers.current = STEPS.slice(1).map((_, i) =>
+      setTimeout(() => setStepIdx(i + 1), (i + 1) * 1100)
+    )
+    stepTimers.current.push(
+      setTimeout(() => { setOverlayState('done'); optimizeSaved.trigger() }, STEPS.length * 1100)
+    )
   }
+
+  // Cleanup on unmount
+  useEffect(() => () => { stepTimers.current.forEach(clearTimeout) }, [])
 
   const handleToggle = (
     setter: (v: boolean) => void,
@@ -286,6 +309,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                   onClick={
                     link === 'Home'     ? (e) => { e.preventDefault(); onNavigate('dashboard') } :
                     link === 'Schedule' ? (e) => { e.preventDefault(); onNavigate('scheduler') } :
+                    link === 'Results'  ? (e) => { e.preventDefault(); onNavigate('results') }   :
                     (e) => e.preventDefault()
                   }
                   className={`text-sm font-bold tracking-tight transition-all duration-150 focus:outline-none
@@ -502,21 +526,11 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                  className="absolute inset-0 bg-[#B02E7A]/15 blur-3xl rounded-full scale-y-50 pointer-events-none" />
 
             <div className="relative inline-block">
-              <ShimmerButton onClick={handleOptimize} disabled={optimizing} size="hero">
-                {optimizing ? (
-                  <>
-                    <svg className="animate-spin w-6 h-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Optimizing…
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-7 h-7" aria-hidden="true" />
-                    Optimize Now!
-                  </>
-                )}
+              <ShimmerButton onClick={handleOptimize} disabled={overlayState !== 'idle'} size="hero">
+                <>
+                  <Zap className="w-7 h-7" aria-hidden="true" />
+                  Optimize Now!
+                </>
               </ShimmerButton>
 
               {/* Bouncing sparkle badge — top-right, per Stitch design */}
@@ -600,6 +614,119 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
       </footer>
 
       {/* ══════════════════════════════
+          OPTIMIZATION PROGRESS OVERLAY
+          ══════════════════════════════ */}
+      {overlayState !== 'idle' && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-6
+                     bg-[#46223e]/40 backdrop-blur-sm"
+          aria-modal="true"
+          role="dialog"
+          aria-label="Optimization in progress"
+        >
+          <motion.div
+            initial={{ scale: 0.88, opacity: 0, y: 24 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+            className="bg-white rounded-[2rem] shadow-2xl p-8 md:p-10 w-full max-w-md
+                       border border-[#ffd7f0]"
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-11 h-11 rounded-2xl bg-[#ffdff2] flex items-center justify-center shrink-0">
+                {overlayState === 'done'
+                  ? <CheckCircle2 className="w-6 h-6 text-[#00675f]" aria-hidden="true" />
+                  : <Loader2 className="w-6 h-6 text-[#B02E7A] animate-spin" aria-hidden="true" />
+                }
+              </div>
+              <div>
+                <h2 className="font-black text-lg text-[#46223e]"
+                    style={{ fontFamily: 'var(--font-headline)' }}>
+                  {overlayState === 'done' ? 'Optimization Complete!' : 'Optimizing Your Shop'}
+                </h2>
+                <p className="text-xs text-[#784e6c] font-medium">
+                  {overlayState === 'done'
+                    ? 'Your optimal timeline is ready.'
+                    : STEPS[stepIdx]?.detail}
+                </p>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-2.5 bg-[#ffd7f0] rounded-full overflow-hidden mb-6">
+              <motion.div
+                className="h-full bubblegum-gradient rounded-full"
+                animate={{
+                  width: overlayState === 'done'
+                    ? '100%'
+                    : `${((stepIdx + 1) / STEPS.length) * 100}%`,
+                }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              />
+            </div>
+
+            {/* Steps list */}
+            <ol className="space-y-3 mb-8">
+              {STEPS.map((step, i) => {
+                const isDone    = overlayState === 'done' || i < stepIdx
+                const isActive  = overlayState === 'running' && i === stepIdx
+                const isPending = !isDone && !isActive
+                return (
+                  <li key={step.id} className="flex items-center gap-3">
+                    {isDone ? (
+                      <CheckCircle2 className="w-5 h-5 text-[#00675f] shrink-0" aria-hidden="true" />
+                    ) : isActive ? (
+                      <Loader2 className="w-5 h-5 text-[#B02E7A] animate-spin shrink-0" aria-hidden="true" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-[#d09ec0] shrink-0" aria-hidden="true" />
+                    )}
+                    <span className={`text-sm font-bold transition-colors duration-300
+                      ${isDone ? 'text-[#00675f]' : isActive ? 'text-[#B02E7A]' : 'text-[#d09ec0]'}
+                      ${isPending ? '' : ''}`}>
+                      {step.label}
+                    </span>
+                  </li>
+                )
+              })}
+            </ol>
+
+            {/* CTA — only shown when done */}
+            {overlayState === 'done' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={SPRING}
+                  onClick={() => { setOverlayState('idle'); onNavigate('results') }}
+                  className="w-full bubblegum-gradient text-white py-4 rounded-full font-black
+                             text-base shadow-[0_12px_28px_rgba(168,33,110,0.30)] cursor-pointer
+                             focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/50 mb-3
+                             flex items-center justify-center gap-2"
+                  style={{ fontFamily: 'var(--font-headline)' }}
+                >
+                  <BarChart2 className="w-5 h-5" aria-hidden="true" />
+                  View Results
+                </motion.button>
+                <button
+                  onClick={() => setOverlayState('idle')}
+                  className="w-full text-sm text-[#784e6c] font-medium py-2 hover:text-[#B02E7A]
+                             transition-colors duration-150 cursor-pointer focus:outline-none"
+                >
+                  Stay here
+                </button>
+              </motion.div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* ══════════════════════════════
           MOBILE BOTTOM NAV — floating pill
           ══════════════════════════════ */}
       <div
@@ -621,6 +748,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
               onClick={
                 navLinks[i] === 'Home'     ? () => onNavigate('dashboard') :
                 navLinks[i] === 'Schedule' ? () => onNavigate('scheduler') :
+                navLinks[i] === 'Results'  ? () => onNavigate('results')   :
                 undefined
               }
               className={`p-1 cursor-pointer focus:outline-none focus:ring-2

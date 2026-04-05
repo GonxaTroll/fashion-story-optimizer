@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
+import { useEffect, useCallback, useRef, Fragment } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
@@ -13,7 +13,6 @@ const CELL_SPRING = { type: 'spring', stiffness: 450, damping: 14 } as const
 /* ─── Static data (module scope — no re-creation on render) ─── */
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
 const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`)
-const DAY_FILTER_OPTIONS = ['All Week', ...DAYS]
 
 const INFO_CARDS = [
   {
@@ -54,8 +53,6 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
   const { grid, toggleCell, setCells, resetGrid, saveGrid } = useScheduler()
   const shouldReduce = useReducedMotion() ?? false
 
-  const [activeDayFilter, setActiveDayFilter] = useState<string>('All Week')
-
   /* ─── Drag-to-select (refs avoid re-renders during drag) ─── */
   const isDragging = useRef(false)
   const dragValue  = useRef(false)
@@ -76,10 +73,6 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
     if (!isDragging.current) return
     setCells([{ hour, day }], dragValue.current)
   }, [setCells])
-
-  /* ─── Day filter helper ─── */
-  const isColVisible = (dayIdx: number): boolean =>
-    activeDayFilter === 'All Week' || DAYS[dayIdx] === activeDayFilter
 
   /* ─── Nav data ─── */
   const navLinks      = ['Home', 'Schedule', 'Optimizer', 'Results']
@@ -125,6 +118,7 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
                   onClick={
                     link === 'Home'      ? (e) => { e.preventDefault(); onNavigate('dashboard') } :
                     link === 'Optimizer' ? (e) => { e.preventDefault(); onNavigate('optimizer') }  :
+                    link === 'Results'   ? (e) => { e.preventDefault(); onNavigate('results') }    :
                     (e) => e.preventDefault()
                   }
                   className={`text-sm font-bold tracking-tight transition-all duration-150 focus:outline-none
@@ -190,29 +184,6 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
             </motion.div>
           </section>
 
-          {/* ── DAY FILTER PILLS ── */}
-          <div className="overflow-x-auto hide-scrollbar mb-6">
-            <div className="flex gap-3 min-w-max pb-2">
-              {DAY_FILTER_OPTIONS.map((day) => (
-                <motion.button
-                  key={day}
-                  whileTap={{ scale: 0.92 }}
-                  transition={SPRING}
-                  onClick={() => setActiveDayFilter(day)}
-                  className={`px-6 py-3 rounded-full font-black text-sm transition-colors duration-150
-                    focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/40 cursor-pointer
-                    ${activeDayFilter === day
-                      ? 'bg-[#9720ab] text-white shadow-[0_8px_20px_rgba(151,32,171,0.25)]'
-                      : 'bg-[#ffcfee] text-[#46223e] hover:bg-[#ffd7f0]'
-                    }`}
-                  style={{ fontFamily: 'var(--font-headline)' }}
-                >
-                  {day}
-                </motion.button>
-              ))}
-            </div>
-          </div>
-
           {/* ── SCHEDULER GRID ── */}
           <section aria-label="Availability grid">
             <motion.div
@@ -229,12 +200,10 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
                 <div className="h-10 flex items-center justify-center text-xs font-bold text-[#966988] uppercase tracking-widest">
                   Time
                 </div>
-                {DAYS.map((day, i) => (
+                {DAYS.map((day) => (
                   <div
                     key={day}
-                    className={`h-10 flex items-center justify-center font-black text-sm
-                      transition-opacity duration-200
-                      ${isColVisible(i) ? 'text-[#46223e] opacity-100' : 'text-[#d09ec0] opacity-40'}`}
+                    className="h-10 flex items-center justify-center font-black text-sm text-[#46223e]"
                     style={{ fontFamily: 'var(--font-headline)' }}
                   >
                     {day}
@@ -251,7 +220,6 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
                     {/* 7 day cells */}
                     {Array.from({ length: 7 }, (_, day) => {
                       const isAvailable = grid[hour][day]
-                      const visible     = isColVisible(day)
                       return (
                         <motion.div
                           key={day}
@@ -268,13 +236,12 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
                           role="button"
                           aria-pressed={isAvailable}
                           aria-label={`${timeLabel} ${DAYS[day]}: ${isAvailable ? 'Available' : 'Busy'}`}
-                          tabIndex={visible ? 0 : -1}
-                          className={`h-10 rounded-lg cursor-pointer select-none transition-colors duration-100
+                          tabIndex={0}
+                          className={`h-10 rounded-lg cursor-pointer select-none transition-colors duration-150
                             focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/40
                             ${isAvailable
-                              ? 'bg-[#B02E7A] shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)]'
-                              : 'bg-[#FFF0F5]'}
-                            ${visible ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}
+                              ? 'bg-[#B02E7A] hover:bg-[#9e2870] shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)]'
+                              : 'bg-[#FFF0F5] hover:bg-[#FFD6E7]'}`}
                         />
                       )
                     })}
@@ -429,6 +396,7 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
               onClick={
                 navLinks[i] === 'Home'      ? () => onNavigate('dashboard') :
                 navLinks[i] === 'Optimizer' ? () => onNavigate('optimizer')  :
+                navLinks[i] === 'Results'   ? () => onNavigate('results')    :
                 undefined
               }
               className={`p-1 cursor-pointer focus:outline-none focus:ring-2

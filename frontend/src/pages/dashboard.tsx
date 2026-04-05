@@ -233,6 +233,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                   onClick={
                     link === 'Schedule'  ? (e) => { e.preventDefault(); onNavigate('scheduler') } :
                     link === 'Optimizer' ? (e) => { e.preventDefault(); onNavigate('optimizer') }  :
+                    link === 'Results'   ? (e) => { e.preventDefault(); onNavigate('results') }    :
                     undefined
                   }
                   className={`text-sm font-bold tracking-tight transition-all duration-150 focus:outline-none
@@ -612,6 +613,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
               onClick={
                 navLinks[i] === 'Schedule'  ? () => onNavigate('scheduler') :
                 navLinks[i] === 'Optimizer' ? () => onNavigate('optimizer')  :
+                navLinks[i] === 'Results'   ? () => onNavigate('results')    :
                 undefined
               }
               className={`p-1 cursor-pointer focus:outline-none focus:ring-2

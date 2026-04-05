@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Sparkles, User, LogOut, Home, Calendar, Settings, BarChart2 } from 'lucide-react'
+import { Sparkles, User, LogOut, Home, Calendar, Settings } from 'lucide-react'
 import AccountTab from '@/components/AccountTab'
 import { SPRING } from '@/components/glimmer/optimizer-ui'
 
