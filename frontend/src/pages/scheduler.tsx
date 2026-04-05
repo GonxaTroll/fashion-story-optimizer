@@ -124,7 +124,7 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
                   role="listitem"
                   onClick={
                     link === 'Home'      ? (e) => { e.preventDefault(); onNavigate('dashboard') } :
-                    link === 'Optimizer' ? (e) => { e.preventDefault(); onNavigate('settings') }  :
+                    link === 'Optimizer' ? (e) => { e.preventDefault(); onNavigate('optimizer') }  :
                     (e) => e.preventDefault()
                   }
                   className={`text-sm font-bold tracking-tight transition-all duration-150 focus:outline-none
@@ -428,7 +428,7 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
               aria-label={navLinks[i]}
               onClick={
                 navLinks[i] === 'Home'      ? () => onNavigate('dashboard') :
-                navLinks[i] === 'Optimizer' ? () => onNavigate('settings')  :
+                navLinks[i] === 'Optimizer' ? () => onNavigate('optimizer')  :
                 undefined
               }
               className={`p-1 cursor-pointer focus:outline-none focus:ring-2

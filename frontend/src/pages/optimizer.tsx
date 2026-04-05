@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
-  Sparkles, ArrowLeft, User,
+  Sparkles, User,
   Bell, Moon, Heart, Lock, LogOut, Check,
   Eye, EyeOff, ChevronDown,
   Layers, RefreshCw, LayoutGrid, Target,
   Zap, TrendingUp, Gem, Star,
+  Home, Calendar, Settings, BarChart2,
 } from 'lucide-react'
 
 /* ─────────────────────────────────────────────────────
@@ -460,11 +461,11 @@ function BoutiquePreviewCard({ gradient, icon: Icon, label }: {
    MAIN OPTIMIZER PAGE
    ════════════════════════════════════════ */
 interface Props {
-  onBack: () => void
   onSignOut: () => void
+  onNavigate: (page: string) => void
 }
 
-export default function OptimizerPage({ onBack, onSignOut }: Props) {
+export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
   /* Optimizer controls */
   const [orderFull, setOrderFull]   = useState(true)
   const [repeatItems, setRepeatItems] = useState(false)
@@ -528,53 +529,89 @@ export default function OptimizerPage({ onBack, onSignOut }: Props) {
     savedHook: ReturnType<typeof useSaved>,
   ) => (v: boolean) => { setter(v); savedHook.trigger() }
 
+  const navLinks       = ['Home', 'Schedule', 'Optimizer', 'Results']
+  const mobileNavIcons = [Home, Calendar, Settings, BarChart2]
+
   return (
     <div className="min-h-screen bg-[#FFF5F8] overflow-x-hidden">
 
-      {/* ── NAVIGATION ── */}
-      <motion.header
+      {/* ══════════════════════════════
+          NAVIGATION — backdrop-blur-xl
+          ══════════════════════════════ */}
+      <motion.nav
         initial={{ y: -72, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4 }}
-        className="sticky top-0 z-50 bg-[#FFF5F8]/80 backdrop-blur-xl
-                   shadow-[0_20px_40px_rgba(70,34,62,0.06)] rounded-b-[2rem]"
+        className="fixed top-0 left-0 right-0 z-50"
+        role="navigation"
+        aria-label="Main navigation"
       >
-        <div className="flex justify-between items-center px-8 py-4 max-w-4xl mx-auto">
-          <motion.button
-            onClick={onBack}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={SPRING_FAST}
-            aria-label="Back to dashboard"
-            className="flex items-center gap-2 text-sm font-bold text-[#784e6c]
-                       hover:text-[#B02E7A] hover:bg-[#ffdff2] px-3 py-2 rounded-xl
-                       transition-colors duration-150 cursor-pointer focus:outline-none
-                       focus:ring-2 focus:ring-[#B02E7A]/40"
-          >
-            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Dashboard</span>
-          </motion.button>
+        <div className="bg-[#FFF5F8]/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(70,34,62,0.06)] rounded-b-[2rem] max-w-7xl mx-auto">
+          <div className="flex justify-between items-center px-8 py-4">
 
-          {/* FashStOpt branding — per spec: placed in header of settings card */}
-          <div className="flex items-center gap-2.5">
-            <motion.div
-              animate={shouldReduce ? {} : { rotate: [0, 8, -8, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              className="w-9 h-9 rounded-xl bg-[#ffdff2] flex items-center justify-center
-                         shadow-[0_4px_12px_rgba(176,46,122,0.18)]"
-            >
-              <Sparkles className="w-5 h-5 text-[#B02E7A]" aria-hidden="true" />
-            </motion.div>
-            <span className="text-xl font-black italic text-[#B02E7A]" style={{ fontFamily: 'var(--font-headline)' }}>
-              FashStOpt
-            </span>
+            {/* Logo */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#ffdff2] flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-[#B02E7A]" aria-hidden="true" />
+              </div>
+              <span
+                className="text-xl font-black italic text-[#B02E7A] leading-none"
+                style={{ fontFamily: 'var(--font-headline)' }}
+              >
+                FashStOpt
+              </span>
+            </div>
+
+            {/* Desktop nav links */}
+            <div className="hidden md:flex items-center gap-8" role="list">
+              {navLinks.map((link, i) => (
+                <a
+                  key={link}
+                  href="#"
+                  role="listitem"
+                  onClick={
+                    link === 'Home'     ? (e) => { e.preventDefault(); onNavigate('dashboard') } :
+                    link === 'Schedule' ? (e) => { e.preventDefault(); onNavigate('scheduler') } :
+                    (e) => e.preventDefault()
+                  }
+                  className={`text-sm font-bold tracking-tight transition-all duration-150 focus:outline-none
+                    focus:ring-2 focus:ring-[#B02E7A]/40 rounded px-1 py-0.5
+                    ${i === 2
+                      ? 'text-[#B02E7A] border-b-2 border-[#B02E7A] pb-1'
+                      : 'text-[#d09ec0] hover:text-[#B02E7A]'
+                    }`}
+                >
+                  {link}
+                </a>
+              ))}
+            </div>
+
+            {/* Right: avatar + sign-out */}
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 text-xs font-semibold text-[#784e6c] bg-[#ffecf5] rounded-xl px-3 py-1.5">
+                <User className="w-3.5 h-3.5 text-[#B02E7A]" aria-hidden="true" />
+                Admin
+              </div>
+              <motion.button
+                onClick={onSignOut}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={SPRING}
+                aria-label="Sign out"
+                className="flex items-center gap-1.5 text-xs font-bold text-[#784e6c]
+                           hover:text-[#B02E7A] hover:bg-[#ffdff2] px-3 py-2 rounded-xl
+                           transition-colors duration-150 cursor-pointer focus:outline-none
+                           focus:ring-2 focus:ring-[#B02E7A]/40"
+              >
+                <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+                <span className="hidden md:inline">Sign out</span>
+              </motion.button>
+            </div>
           </div>
-
-          <div className="w-24" aria-hidden="true" />
         </div>
-      </motion.header>
+      </motion.nav>
 
-      <main className="max-w-4xl mx-auto px-6 py-12">
+      <main className="max-w-4xl mx-auto px-6 pt-32 pb-28">
 
         {/* ── HERO HEADER (Stitch-matched) ── */}
         <div className="relative mb-14 overflow-visible">
@@ -1024,6 +1061,40 @@ export default function OptimizerPage({ onBack, onSignOut }: Props) {
           </p>
         </div>
       </footer>
+
+      {/* ══════════════════════════════
+          MOBILE BOTTOM NAV — floating pill
+          ══════════════════════════════ */}
+      <div
+        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+        role="navigation"
+        aria-label="Mobile navigation"
+      >
+        <div
+          className="bg-[#FFF5F8]/90 backdrop-blur-xl rounded-full shadow-2xl
+                     px-6 py-3.5 flex items-center gap-6 border border-[#ffd7f0]"
+        >
+          {mobileNavIcons.map((Icon, i) => (
+            <motion.button
+              key={i}
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
+              transition={SPRING}
+              aria-label={navLinks[i]}
+              onClick={
+                navLinks[i] === 'Home'     ? () => onNavigate('dashboard') :
+                navLinks[i] === 'Schedule' ? () => onNavigate('scheduler') :
+                undefined
+              }
+              className={`p-1 cursor-pointer focus:outline-none focus:ring-2
+                          focus:ring-[#B02E7A]/40 rounded-full transition-colors duration-150
+                          ${i === 2 ? 'text-[#B02E7A]' : 'text-[#d09ec0] hover:text-[#B02E7A]'}`}
+            >
+              <Icon className="w-6 h-6" aria-hidden="true" />
+            </motion.button>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
