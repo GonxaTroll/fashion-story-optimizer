@@ -42,3 +42,8 @@
 - **Build:** `npm run build`
 - **Add shadcn:** `npx shadcn@latest add [component]`
 - **Lint:** `npm run lint`
+
+## Page Creation
+- Use Tailwind classes from `index.css`.
+- All pages must go in `src/pages`.1
+- Do not search the whole repo for patterns; refer to `src/pages/dashboard.tsx` only.

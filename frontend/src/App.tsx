@@ -1,16 +1,25 @@
 import { useState } from 'react'
 import SignInPage from '@/pages/sign-in'
 import DashboardPage from '@/pages/dashboard'
-import SettingsPage from '@/pages/settings'
+import OptimizerPage from '@/pages/settings'
+import SchedulerPage from '@/pages/scheduler'
 
-export type Page = 'signin' | 'dashboard' | 'settings'
+export type Page = 'signin' | 'dashboard' | 'settings' | 'scheduler'
 
 function App() {
   const [page, setPage] = useState<Page>('signin')
 
+  if (page === 'scheduler')
+    return (
+      <SchedulerPage
+        onSignOut={() => setPage('signin')}
+        onNavigate={(p) => setPage(p as Page)}
+      />
+    )
+
   if (page === 'settings')
     return (
-      <SettingsPage
+      <OptimizerPage
         onBack={() => setPage('dashboard')}
         onSignOut={() => setPage('signin')}
       />

@@ -163,7 +163,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
   const hangT   = { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const, delay: 0.5 }
   const starT   = { duration: 3.2, repeat: Infinity, ease: 'easeInOut' as const, delay: 1.1 }
 
-  const navLinks = ['Home', 'Schedule', 'Settings', 'Results']
+  const navLinks = ['Home', 'Schedule', 'Optimizer', 'Results']
   const mobileNavIcons = [Home, Calendar, Settings, BarChart2]
 
   const stats = [
@@ -230,7 +230,11 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                   key={link}
                   href="#"
                   role="listitem"
-                  onClick={link === 'Settings' ? (e) => { e.preventDefault(); onNavigate('settings') } : undefined}
+                  onClick={
+                    link === 'Schedule'  ? (e) => { e.preventDefault(); onNavigate('scheduler') } :
+                    link === 'Optimizer' ? (e) => { e.preventDefault(); onNavigate('settings') }  :
+                    undefined
+                  }
                   className={`text-sm font-bold tracking-tight transition-all duration-150 focus:outline-none
                     focus:ring-2 focus:ring-[#B02E7A]/40 rounded px-1 py-0.5
                     ${i === 0
@@ -595,7 +599,11 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
               whileTap={{ scale: 0.9 }}
               transition={SPRING}
               aria-label={navLinks[i]}
-              onClick={navLinks[i] === 'Settings' ? () => onNavigate('settings') : undefined}
+              onClick={
+                navLinks[i] === 'Schedule'  ? () => onNavigate('scheduler') :
+                navLinks[i] === 'Optimizer' ? () => onNavigate('settings')  :
+                undefined
+              }
               className={`p-1 cursor-pointer focus:outline-none focus:ring-2
                           focus:ring-[#B02E7A]/40 rounded-full transition-colors duration-150
                           ${i === 0 ? 'text-[#B02E7A]' : 'text-[#d09ec0] hover:text-[#B02E7A]'}`}
