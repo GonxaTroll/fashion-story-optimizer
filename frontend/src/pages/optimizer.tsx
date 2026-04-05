@@ -1,197 +1,19 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import {
-  Sparkles, User,
-  Bell, Moon, Heart, Lock, LogOut, Check,
-  Eye, EyeOff, ChevronDown,
+  Sparkles, User, LogOut,
   Layers, RefreshCw, LayoutGrid, Target,
   Zap, TrendingUp, Gem, Star,
   Home, Calendar, Settings, BarChart2,
 } from 'lucide-react'
+import {
+  SPRING,
+  useSaved,
+  SavedBadge,
+  BouncyToggle,
+  ShimmerButton,
+} from '@/components/glimmer/optimizer-ui'
 
-/* ─────────────────────────────────────────────────────
-   Spring constants (stiffness: 300, damping: 30 per spec)
-   ───────────────────────────────────────────────────── */
-const SPRING      = { type: 'spring', stiffness: 300, damping: 30 } as const
-const SPRING_FAST = { type: 'spring', stiffness: 400, damping: 28 } as const
-
-/* ─────────────────────────────────────────────────────
-   Hook: "Saved ✓" flash
-   ───────────────────────────────────────────────────── */
-function useSaved(duration = 2000) {
-  const [saved, setSaved] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const trigger = useCallback(() => {
-    setSaved(true)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => setSaved(false), duration)
-  }, [duration])
-  useEffect(() => () => clearTimeout(timer.current), [])
-  return { saved, trigger }
-}
-
-/* ════════════════════════════════════════
-   SAVED BADGE — fades in/out elegantly
-   ════════════════════════════════════════ */
-function SavedBadge({ visible }: { visible: boolean }) {
-  return (
-    <AnimatePresence>
-      {visible && (
-        <motion.span
-          initial={{ opacity: 0, y: 4, scale: 0.85 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -4, scale: 0.85 }}
-          transition={SPRING}
-          className="inline-flex items-center gap-1 text-xs font-bold text-[#00675f]
-                     bg-[#edfff9] rounded-full px-2.5 py-1 shrink-0"
-        >
-          <Check className="w-3 h-3" aria-hidden="true" />
-          Saved
-        </motion.span>
-      )}
-    </AnimatePresence>
-  )
-}
-
-/* ════════════════════════════════════════
-   BOUNCY TOGGLE — spring thumb + soft glow
-   ════════════════════════════════════════ */
-interface ToggleProps {
-  checked: boolean
-  onChange: (v: boolean) => void
-  id: string
-  label: string
-}
-function BouncyToggle({ checked, onChange, id, label }: ToggleProps) {
-  return (
-    <button
-      id={id}
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex w-14 h-8 rounded-full transition-colors duration-200
-                  cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/40
-                  focus:ring-offset-2 shrink-0
-                  ${checked ? 'bg-[#B02E7A]' : 'bg-[#ffd7f0]'}`}
-      style={
-        checked
-          ? { boxShadow: '0 0 16px rgba(176,46,122,0.40), 0 2px 10px rgba(176,46,122,0.22)' }
-          : undefined
-      }
-    >
-      <motion.div
-        animate={{ x: checked ? 22 : 0 }}
-        transition={SPRING}
-        className="absolute top-[4px] left-[4px] w-6 h-6 bg-white rounded-full shadow-md"
-      />
-    </button>
-  )
-}
-
-/* ════════════════════════════════════════
-   PLAYFUL INPUT — soft pink, no border, magenta focus ring
-   ════════════════════════════════════════ */
-interface InputProps {
-  id: string
-  label: string
-  placeholder?: string
-  value: string
-  onChange: (v: string) => void
-  type?: string
-  multiline?: boolean
-  rightSlot?: React.ReactNode
-  onBlur?: () => void
-}
-function PlayfulInput({
-  id, label, placeholder, value, onChange,
-  type = 'text', multiline = false, rightSlot, onBlur,
-}: InputProps) {
-  const shared =
-    `w-full bg-[#FFF0F5] border-2 border-transparent rounded-2xl px-5 py-3.5
-     text-[#46223e] placeholder:text-[#d09ec0] focus:outline-none
-     focus:border-[#B02E7A]/30 transition-all duration-150 text-sm resize-none`
-  return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="text-xs font-bold text-[#784e6c] ml-1">
-        {label}
-      </label>
-      <div className="relative">
-        {multiline ? (
-          <textarea
-            id={id} rows={3} placeholder={placeholder} value={value}
-            onChange={(e) => onChange(e.target.value)} onBlur={onBlur}
-            className={shared}
-          />
-        ) : (
-          <input
-            id={id} type={type} placeholder={placeholder} value={value}
-            onChange={(e) => onChange(e.target.value)} onBlur={onBlur}
-            className={`${shared} ${rightSlot ? 'pr-12' : ''}`}
-          />
-        )}
-        {rightSlot && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2">{rightSlot}</div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-/* ════════════════════════════════════════
-   SHIMMER BUTTON — 21st.dev Shiny style
-   ════════════════════════════════════════ */
-interface ShimmerBtnProps {
-  children: React.ReactNode
-  onClick?: () => void
-  disabled?: boolean
-  danger?: boolean
-  className?: string
-  size?: 'normal' | 'hero'
-}
-function ShimmerButton({ children, onClick, disabled = false, danger = false, className = '', size = 'normal' }: ShimmerBtnProps) {
-  const sizeClass = size === 'hero'
-    ? 'text-2xl py-6 px-12'
-    : 'text-sm py-3 px-8'
-
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      whileHover={disabled ? {} : { scale: 1.05 }}
-      whileTap={disabled ? {} : { scale: 0.95 }}
-      transition={SPRING_FAST}
-      className={`relative overflow-hidden rounded-full font-black cursor-pointer
-                  disabled:opacity-60 disabled:cursor-not-allowed
-                  focus:outline-none focus:ring-2 focus:ring-offset-2
-                  ${sizeClass}
-                  ${danger
-                    ? 'bg-[#fff0f4] text-[#b41340] hover:bg-[#ffe0e8] focus:ring-[#b41340]/40 border border-[#f74b6d]/20'
-                    : 'bubblegum-gradient text-white shadow-[0_20px_40px_rgba(168,33,110,0.30)] focus:ring-[#B02E7A]/50'
-                  }
-                  ${className}`}
-      style={{ fontFamily: 'var(--font-headline)' }}
-    >
-      {/* Shimmer sweep overlay */}
-      {!disabled && !danger && (
-        <motion.span
-          aria-hidden="true"
-          initial={{ x: '-110%' }}
-          animate={{ x: '110%' }}
-          transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut', repeatDelay: 1.6 }}
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.40) 50%, transparent 90%)',
-            width: '60%',
-          }}
-        />
-      )}
-      <span className="relative flex items-center justify-center gap-2.5">{children}</span>
-    </motion.button>
-  )
-}
 
 /* ════════════════════════════════════════
    SEGMENTED CONTROL — Revenue / XP / Gems
@@ -352,76 +174,6 @@ function OptimizerCard({
   )
 }
 
-/* ════════════════════════════════════════
-   SECTION CARD — white card with header
-   ════════════════════════════════════════ */
-interface SectionProps {
-  title: string
-  icon: React.ElementType
-  iconColor: string
-  children: React.ReactNode
-  delay?: number
-  shouldReduce: boolean
-}
-function SectionCard({ title, icon: Icon, iconColor, children, delay = 0, shouldReduce }: SectionProps) {
-  return (
-    <motion.section
-      initial={shouldReduce ? false : { opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ ...SPRING, delay }}
-    >
-      <div className="bg-white rounded-[1.5rem] shadow-[0_8px_28px_rgba(176,46,122,0.07)] overflow-hidden">
-        <div className="flex items-center gap-3 px-8 pt-7 pb-1">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${iconColor}18` }}>
-            <Icon className="w-4 h-4" style={{ color: iconColor }} aria-hidden="true" />
-          </div>
-          <h2
-            className="text-xs font-black uppercase tracking-[0.12em] text-[#784e6c]"
-            style={{ fontFamily: 'var(--font-headline)' }}
-          >
-            {title}
-          </h2>
-        </div>
-        <div className="px-8 pb-6">{children}</div>
-      </div>
-    </motion.section>
-  )
-}
-
-/* ════════════════════════════════════════
-   SETTING ROW — icon + text + control
-   Golden Ratio padding: py-5 = 20px
-   ════════════════════════════════════════ */
-interface SettingRowProps {
-  icon: React.ElementType
-  iconColor: string
-  iconBg: string
-  title: string
-  subtitle?: string
-  control: React.ReactNode
-  saved?: boolean
-  last?: boolean
-}
-function SettingRow({ icon: Icon, iconColor, iconBg, title, subtitle, control, saved = false, last = false }: SettingRowProps) {
-  return (
-    <div className={`flex items-center justify-between gap-4 py-5 ${last ? '' : 'border-b border-[#ffecf5]'}`}>
-      <div className="flex items-center gap-4 min-w-0">
-        <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
-          <Icon className="w-5 h-5" style={{ color: iconColor }} aria-hidden="true" />
-        </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-bold text-[#46223e]" style={{ fontFamily: 'var(--font-headline)' }}>{title}</p>
-            <SavedBadge visible={saved} />
-          </div>
-          {subtitle && <p className="text-xs text-[#966988] font-medium mt-0.5">{subtitle}</p>}
-        </div>
-      </div>
-      <div className="shrink-0">{control}</div>
-    </div>
-  )
-}
 
 /* ════════════════════════════════════════
    BOUTIQUE PREVIEW CARD — grayscale → color
@@ -478,50 +230,12 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
   const [optimizing, setOptimizing] = useState(false)
   const optimizeSaved = useSaved()
 
-  /* Profile */
-  const [name, setName]               = useState('Admin')
-  const [boutiqueName, setBoutiqueName] = useState('Glimmer HQ')
-  const [bio, setBio]                  = useState('')
-  const [saving, setSaving]            = useState(false)
-  const profileSaved                   = useSaved()
-
-  /* Preferences */
-  const [notifications, setNotifications] = useState(true)
-  const [darkMode, setDarkMode]           = useState(false)
-  const [stayPlayful, setStayPlayful]     = useState(true)
-  const notifSaved = useSaved()
-  const darkSaved  = useSaved()
-  const playSaved  = useSaved()
-
-  /* Account */
-  const [pwOpen, setPwOpen]           = useState(false)
-  const [currentPw, setCurrentPw]     = useState('')
-  const [newPw, setNewPw]             = useState('')
-  const [showCurrent, setShowCurrent] = useState(false)
-  const [showNew, setShowNew]         = useState(false)
-  const [pwSaving, setPwSaving]       = useState(false)
-  const pwSaved = useSaved()
-
   const shouldReduce = useReducedMotion() ?? false
 
   const handleOptimize = () => {
     if (optimizing) return
     setOptimizing(true)
     setTimeout(() => { setOptimizing(false); optimizeSaved.trigger() }, 1600)
-  }
-
-  const handleUpdateProfile = () => {
-    if (saving) return
-    setSaving(true)
-    setTimeout(() => { setSaving(false); profileSaved.trigger() }, 1300)
-  }
-
-  const handleSavePw = () => {
-    if (!currentPw || !newPw || pwSaving) return
-    setPwSaving(true)
-    setTimeout(() => {
-      setPwSaving(false); setCurrentPw(''); setNewPw(''); setPwOpen(false); pwSaved.trigger()
-    }, 1200)
   }
 
   const handleToggle = (
@@ -588,10 +302,20 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
 
             {/* Right: avatar + sign-out */}
             <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-2 text-xs font-semibold text-[#784e6c] bg-[#ffecf5] rounded-xl px-3 py-1.5">
+              <motion.button
+                onClick={() => onNavigate('account')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={SPRING}
+                aria-label="Go to account settings"
+                className="hidden md:flex items-center gap-2 text-xs font-semibold text-[#784e6c]
+                           bg-[#ffecf5] hover:bg-[#ffdff2] rounded-xl px-3 py-1.5
+                           transition-colors duration-150 cursor-pointer focus:outline-none
+                           focus:ring-2 focus:ring-[#B02E7A]/40"
+              >
                 <User className="w-3.5 h-3.5 text-[#B02E7A]" aria-hidden="true" />
                 Admin
-              </div>
+              </motion.button>
               <motion.button
                 onClick={onSignOut}
                 whileHover={{ scale: 1.05 }}
@@ -816,193 +540,6 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
               <SavedBadge visible={optimizeSaved.saved} />
             </div>
           </motion.div>
-
-          {/* ── PROFILE SECTION ── */}
-          <SectionCard title="Profile" icon={User} iconColor="#B02E7A" delay={0.28} shouldReduce={shouldReduce}>
-            {/* Avatar row */}
-            <div className="flex items-center gap-5 py-5 border-b border-[#ffecf5]">
-              <div className="relative">
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center
-                             text-white text-xl font-black shadow-[0_6px_18px_rgba(176,46,122,0.20)]"
-                  style={{
-                    background: 'linear-gradient(135deg, #a8216e 0%, #ff6cb5 100%)',
-                    fontFamily: 'var(--font-headline)',
-                  }}
-                  aria-label={`Avatar for ${name}`}
-                >
-                  {name.charAt(0).toUpperCase()}
-                </div>
-                <button
-                  type="button"
-                  aria-label="Change avatar"
-                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#B02E7A] rounded-full
-                             flex items-center justify-center border-2 border-white cursor-pointer
-                             hover:bg-[#980f61] transition-colors duration-150 focus:outline-none
-                             focus:ring-2 focus:ring-[#B02E7A]/50"
-                >
-                  <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none"
-                       stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                </button>
-              </div>
-              <div>
-                <p className="text-sm font-black text-[#46223e]" style={{ fontFamily: 'var(--font-headline)' }}>
-                  {name || 'Admin'}
-                </p>
-                <p className="text-xs text-[#966988] font-medium">Boutique Owner · Admin</p>
-              </div>
-            </div>
-
-            <div className="py-5 border-b border-[#ffecf5]">
-              <PlayfulInput id="profile-name" label="Display Name" placeholder="Your name" value={name} onChange={setName} />
-            </div>
-            <div className="py-5 border-b border-[#ffecf5]">
-              <PlayfulInput id="boutique-name" label="Boutique Name" placeholder="e.g. Glimmer HQ" value={boutiqueName} onChange={setBoutiqueName} />
-            </div>
-            <div className="py-5 border-b border-[#ffecf5]">
-              <PlayfulInput id="bio" label="Bio" placeholder="Tell the fashion world about you…" value={bio} onChange={setBio} multiline />
-            </div>
-
-            <div className="pt-5 flex items-center gap-4">
-              <ShimmerButton onClick={handleUpdateProfile} disabled={saving}>
-                {saving ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Saving…
-                  </>
-                ) : 'Update Profile'}
-              </ShimmerButton>
-              <SavedBadge visible={profileSaved.saved} />
-            </div>
-          </SectionCard>
-
-          {/* ── PREFERENCES SECTION ── */}
-          <SectionCard title="Preferences" icon={Bell} iconColor="#9720ab" delay={0.32} shouldReduce={shouldReduce}>
-            <SettingRow
-              icon={Bell} iconColor="#9720ab" iconBg="#f3e8ff"
-              title="Notifications" subtitle="Game updates, tips & weekly recaps"
-              saved={notifSaved.saved}
-              control={
-                <BouncyToggle id="toggle-notif" label="Toggle notifications"
-                  checked={notifications} onChange={handleToggle(setNotifications, notifSaved)} />
-              }
-            />
-            <SettingRow
-              icon={Moon} iconColor="#784e6c" iconBg="#ffdff2"
-              title="Light Mode" subtitle="Currently using Blush theme"
-              saved={darkSaved.saved}
-              control={
-                <BouncyToggle id="toggle-dark" label="Toggle light mode"
-                  checked={!darkMode} onChange={(v) => handleToggle(setDarkMode, darkSaved)(!v)} />
-              }
-            />
-            <SettingRow
-              icon={Heart} iconColor="#B02E7A" iconBg="#ffdff2"
-              title="Stay Playful" subtitle="Remember your session automatically"
-              saved={playSaved.saved}
-              last
-              control={
-                <BouncyToggle id="toggle-play" label="Toggle stay playful"
-                  checked={stayPlayful} onChange={handleToggle(setStayPlayful, playSaved)} />
-              }
-            />
-          </SectionCard>
-
-          {/* ── ACCOUNT SECTION ── */}
-          <SectionCard title="Account" icon={Lock} iconColor="#46223e" delay={0.36} shouldReduce={shouldReduce}>
-            {/* Change Password — expandable */}
-            <div>
-              <button
-                type="button"
-                onClick={() => setPwOpen((v) => !v)}
-                className="w-full flex items-center justify-between py-5 border-b border-[#ffecf5]
-                           cursor-pointer focus:outline-none group"
-                aria-expanded={pwOpen}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-2xl bg-[#ffecf5] flex items-center justify-center">
-                    <Lock className="w-5 h-5 text-[#46223e]" aria-hidden="true" />
-                  </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-[#46223e]" style={{ fontFamily: 'var(--font-headline)' }}>
-                        Change Password
-                      </p>
-                      <SavedBadge visible={pwSaved.saved} />
-                    </div>
-                    <p className="text-xs text-[#966988] font-medium">Update your login credentials</p>
-                  </div>
-                </div>
-                <motion.div animate={{ rotate: pwOpen ? 180 : 0 }} transition={SPRING}>
-                  <ChevronDown className="w-5 h-5 text-[#966988] group-hover:text-[#B02E7A] transition-colors" aria-hidden="true" />
-                </motion.div>
-              </button>
-
-              <AnimatePresence initial={false}>
-                {pwOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={SPRING}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-5 pb-2 space-y-4">
-                      <PlayfulInput
-                        id="current-pw" label="Current Password"
-                        type={showCurrent ? 'text' : 'password'} placeholder="••••••••"
-                        value={currentPw} onChange={setCurrentPw}
-                        rightSlot={
-                          <button type="button" aria-label={showCurrent ? 'Hide' : 'Show'}
-                            onClick={() => setShowCurrent((v) => !v)}
-                            className="text-[#966988] hover:text-[#B02E7A] transition-colors cursor-pointer focus:outline-none">
-                            {showCurrent ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
-                          </button>
-                        }
-                      />
-                      <PlayfulInput
-                        id="new-pw" label="New Password"
-                        type={showNew ? 'text' : 'password'} placeholder="••••••••"
-                        value={newPw} onChange={setNewPw}
-                        rightSlot={
-                          <button type="button" aria-label={showNew ? 'Hide' : 'Show'}
-                            onClick={() => setShowNew((v) => !v)}
-                            className="text-[#966988] hover:text-[#B02E7A] transition-colors cursor-pointer focus:outline-none">
-                            {showNew ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
-                          </button>
-                        }
-                      />
-                      <div className="flex items-center gap-3 pt-1">
-                        <ShimmerButton onClick={handleSavePw} disabled={!currentPw || !newPw || pwSaving}>
-                          {pwSaving ? 'Saving…' : 'Save Password'}
-                        </ShimmerButton>
-                        <button type="button"
-                          onClick={() => { setPwOpen(false); setCurrentPw(''); setNewPw('') }}
-                          className="text-xs font-bold text-[#966988] hover:text-[#46223e] transition-colors
-                                     duration-150 cursor-pointer px-3 py-2 focus:outline-none
-                                     focus:ring-1 focus:ring-[#966988] rounded-lg">
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <SettingRow
-              icon={LogOut} iconColor="#b41340" iconBg="#fff0f4"
-              title="Sign Out" subtitle="End your current session"
-              last
-              control={<ShimmerButton danger onClick={onSignOut}>Sign Out</ShimmerButton>}
-            />
-          </SectionCard>
 
           {/* ── VISUAL ANCHOR: Boutique preview cards ── */}
           <motion.div

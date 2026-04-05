@@ -3,11 +3,20 @@ import SignInPage from '@/pages/sign-in'
 import DashboardPage from '@/pages/dashboard'
 import OptimizerPage from '@/pages/optimizer'
 import SchedulerPage from '@/pages/scheduler'
+import AccountPage from '@/pages/account'
 
-export type Page = 'signin' | 'dashboard' | 'optimizer' | 'scheduler'
+export type Page = 'signin' | 'dashboard' | 'optimizer' | 'scheduler' | 'account'
 
 function App() {
   const [page, setPage] = useState<Page>('signin')
+
+  if (page === 'account')
+    return (
+      <AccountPage
+        onSignOut={() => setPage('signin')}
+        onNavigate={(p) => setPage(p as Page)}
+      />
+    )
 
   if (page === 'scheduler')
     return (
