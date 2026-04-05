@@ -7,6 +7,7 @@
 - **Animations:** Framer Motion (Essential for "pop" and "spring" vibes)
 - **Icons:** Lucide React
 - **State:** Zustand (For Profit, XP, and Gems tracking)
+- **Skill Engine:** UI/UX Pro Max (NextLevelBuilder)
 
 ## 🎨 Design System (Glimmer Boutique Vibe)
 - **Aesthetic:** Gamified Y2K / Soft Pop / High-Gloss Boutique.

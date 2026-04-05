@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;0,800;1,800&amp;family=Be+Vietnam+Pro:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "on-primary-fixed-variant": "#5b0038",
+                "on-error-container": "#510017",
+                "outline": "#966988",
+                "surface-container-low": "#ffecf5",
+                "background": "#fff4f8",
+                "on-background": "#46223e",
+                "inverse-primary": "#fa65b0",
+                "on-secondary-fixed": "#5d006d",
+                "surface-variant": "#ffcfee",
+                "primary-dim": "#980f61",
+                "secondary-container": "#fcbcff",
+                "on-secondary-fixed-variant": "#8a0b9f",
+                "surface-container-lowest": "#ffffff",
+                "outline-variant": "#d09ec0",
+                "on-tertiary": "#bffff5",
+                "surface-container": "#ffdff2",
+                "surface-container-highest": "#ffcfee",
+                "secondary-fixed-dim": "#f9a7ff",
+                "on-primary-container": "#4a002c",
+                "on-surface": "#46223e",
+                "error": "#b41340",
+                "primary-container": "#ff6cb5",
+                "surface-bright": "#fff4f8",
+                "tertiary": "#00675f",
+                "on-tertiary-fixed": "#00423c",
+                "tertiary-fixed-dim": "#43e2d2",
+                "surface-container-high": "#ffd7f0",
+                "on-tertiary-fixed-variant": "#006159",
+                "on-primary": "#ffeff3",
+                "primary-fixed-dim": "#f05da8",
+                "on-secondary-container": "#7c0091",
+                "secondary": "#9720ab",
+                "surface-dim": "#ffc2eb",
+                "tertiary-dim": "#005a52",
+                "surface": "#fff4f8",
+                "on-tertiary-container": "#00574f",
+                "on-surface-variant": "#784e6c",
+                "tertiary-container": "#56f1e0",
+                "on-secondary": "#ffeefb",
+                "inverse-surface": "#20031b",
+                "on-primary-fixed": "#000000",
+                "secondary-dim": "#89089e",
+                "inverse-on-surface": "#bf8eaf",
+                "tertiary-fixed": "#56f1e0",
+                "error-dim": "#a70138",
+                "primary-fixed": "#ff6cb5",
+                "primary": "#a8216e",
+                "on-error": "#ffefef",
+                "surface-tint": "#a8216e",
+                "error-container": "#f74b6d",
+                "secondary-fixed": "#fcbcff"
+              },
+              "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+              },
+              "fontFamily": {
+                "headline": ["Plus Jakarta Sans"],
+                "body": ["Be Vietnam Pro"],
+                "label": ["Plus Jakarta Sans"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Be Vietnam Pro', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- TopNavBar Section -->
+<nav class="sticky top-0 z-50 bg-pink-50/80 dark:bg-fuchsia-950/80 backdrop-blur-md shadow-[0_20px_40px_rgba(70,34,62,0.06)] rounded-b-[2rem]">
+<div class="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
+<div class="text-2xl font-black italic text-pink-700 dark:text-pink-400">Glimmer Boutique</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="font-plus-jakarta text-base font-bold tracking-tight text-pink-400 dark:text-pink-600 hover:scale-105 hover:text-pink-700 dark:hover:text-pink-200 transition-all active:scale-95 duration-200" href="#">Home</a>
+<a class="font-plus-jakarta text-base font-bold tracking-tight text-pink-400 dark:text-pink-600 hover:scale-105 hover:text-pink-700 dark:hover:text-pink-200 transition-all active:scale-95 duration-200" href="#">Schedule</a>
+<a class="font-plus-jakarta text-base font-bold tracking-tight text-pink-400 dark:text-pink-600 hover:scale-105 hover:text-pink-700 dark:hover:text-pink-200 transition-all active:scale-95 duration-200" href="#">Settings</a>
+<a class="font-plus-jakarta text-base font-bold tracking-tight text-pink-700 dark:text-pink-200 border-b-4 border-pink-500 pb-1 hover:scale-105 transition-all active:scale-95 duration-200" href="#">Results</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-pink-600 text-3xl">account_circle</span>
+</div>
+</div>
+</nav>
+<main class="max-w-7xl mx-auto px-6 py-8">
+<!-- Hero Header / Summary -->
+<header class="relative mb-12 text-center">
+<div class="absolute -top-10 -left-10 w-40 h-40 bg-tertiary-container/30 rounded-full blur-3xl -z-10"></div>
+<div class="absolute -top-10 -right-10 w-40 h-40 bg-secondary-container/30 rounded-full blur-3xl -z-10"></div>
+<h1 class="text-4xl md:text-6xl font-black tracking-tighter text-on-surface mb-6">
+                The Best <span class="text-primary italic">Selection</span>
+</h1>
+<!-- Summary Chips -->
+<div class="flex flex-wrap justify-center gap-3">
+<div class="bg-surface-container-high px-6 py-3 rounded-full flex items-center gap-3 shadow-sm border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">star</span>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant leading-none">Potential XP</p>
+<p class="text-xl font-black text-on-surface">+14,200</p>
+</div>
+</div>
+<div class="bg-surface-container-high px-6 py-3 rounded-full flex items-center gap-3 shadow-sm border border-outline-variant/10">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">diamond</span>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant leading-none">Cost Estimate</p>
+<p class="text-xl font-black text-on-surface">850</p>
+</div>
+</div>
+<div class="bg-surface-container-high px-6 py-3 rounded-full flex items-center gap-3 shadow-sm border border-outline-variant/10">
+<span class="material-symbols-outlined text-tertiary text-2xl" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant leading-none">Power Boost</p>
+<p class="text-xl font-black text-on-surface">92%</p>
+</div>
+</div>
+</div>
+</header>
+<!-- Compact Results Grid -->
+<section class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-16">
+<!-- Item 1 -->
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative transition-all hover:ring-4 hover:ring-primary/20 hover:scale-[1.02]">
+<div class="bg-tertiary-container rounded-xl aspect-square mb-3 flex items-center justify-center overflow-hidden relative">
+<img alt="Arena Gloves" class="w-4/5 h-4/5 object-contain group-hover:scale-110 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD01HyArOW-IJCyxcQh9tK1PXpnwEOyQRSiAHPJMXKq37eLuIvPTAKTBUyqKqurJsi2vDAmfVVhoEjKFCkQo4APLjHkCJpciB5tLDH0Z1T907IdM10DCkKK1ski_8sV7aJtqP8zD0Iayf9IqKDNFDjnj-D_Iy6Xvs-drlxUZU0C6bGzAzbZopSWDU8djV6DV08RbfopXBZ2qnItU6gH3D4HU8OihYa0BVrjlS_YabgO1zdHCxnN4yL-E2xTI7zP0ASQQucD4eX_Ax4"/>
+<div class="absolute top-2 right-2 bg-white/90 px-2 py-0.5 rounded-full text-[8px] font-black text-primary tracking-tighter">ELITE</div>
+</div>
+<h3 class="text-sm font-black text-on-surface truncate mb-1">Arena Gloves</h3>
+<div class="flex flex-col gap-1 mt-auto">
+<div class="flex items-center gap-1 text-[10px] font-bold text-on-surface-variant">
+<span class="material-symbols-outlined text-[12px]">payments</span>
+<span>250 G</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-black text-tertiary">+2.4k XP</span>
+<button class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative transition-all hover:ring-4 hover:ring-primary/20 hover:scale-[1.02]">
+<div class="bg-primary-container rounded-xl aspect-square mb-3 flex items-center justify-center overflow-hidden relative">
+<img alt="Neon Visor" class="w-4/5 h-4/5 object-contain group-hover:scale-110 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDC0qG5QqIjN4RSp1nK9eHyJXTY1QU1ltcVIm7w_7dPd73R8cSI6rhEFGiR2R0co4cKFKhFyVjIWQz_jNBUMwQl4dLnLcEhoGP3ZUAOq5wudLUN9d2ntX3yQU415bFEYVaDSH0K4Faz9hrOEFjKMoZ7F8t76M86QU6CdYsAPI0dtCmsscvXmZ8_6Jge1WDBBrHKmAxnHoQudPCVyfB__mxQNcXY_jIYHuhggkqb9jmJZIGIKu63MzMCpVX9MZnjdS3xbngV78zKHOY"/>
+<div class="absolute top-2 right-2 bg-white/90 px-2 py-0.5 rounded-full text-[8px] font-black text-secondary tracking-tighter">RARE</div>
+</div>
+<h3 class="text-sm font-black text-on-surface truncate mb-1">Neon Visor</h3>
+<div class="flex flex-col gap-1 mt-auto">
+<div class="flex items-center gap-1 text-[10px] font-bold text-on-surface-variant">
+<span class="material-symbols-outlined text-[12px]">monetization_on</span>
+<span>1.2k C</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-black text-tertiary">+3.1k XP</span>
+<button class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative transition-all hover:ring-4 hover:ring-primary/20 hover:scale-[1.02]">
+<div class="bg-secondary-container rounded-xl aspect-square mb-3 flex items-center justify-center overflow-hidden relative">
+<img alt="Swift Boots" class="w-4/5 h-4/5 object-contain group-hover:scale-110 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrOaSPsF0wcQGa_12NPe4_cQrmfkUtxz7FL9uFB8hECdwpaJrtmPhQxX1ZIFgpHsvrtE47UiSHOCDYQ-ca-gSoxTnTj-bCpJmhGVA3XuLGFLQfDmxz0vPI0JVKTBUynziHtVSqZne6oASGJ6zcGWypHw-50yH-1H3yOk-aybjYyD61-L8rJMktJbjajmk3mFzv6S1RF9cyopcoADbzixZPD6_abcwcOGe5GtVqbWdQWnNy2VL7kd92uEMfGtkuPG5OSKXcsm3vJQE"/>
+<div class="absolute top-2 right-2 bg-white/90 px-2 py-0.5 rounded-full text-[8px] font-black text-tertiary tracking-tighter">SPEED</div>
+</div>
+<h3 class="text-sm font-black text-on-surface truncate mb-1">Swift Boots</h3>
+<div class="flex flex-col gap-1 mt-auto">
+<div class="flex items-center gap-1 text-[10px] font-bold text-on-surface-variant">
+<span class="material-symbols-outlined text-[12px]">payments</span>
+<span>300 G</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-black text-tertiary">+4.2k XP</span>
+<button class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative transition-all hover:ring-4 hover:ring-primary/20 hover:scale-[1.02]">
+<div class="bg-outline-variant/20 rounded-xl aspect-square mb-3 flex items-center justify-center overflow-hidden relative">
+<img alt="Aura Belt" class="w-4/5 h-4/5 object-contain group-hover:scale-110 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpNQCeLs0eskAjKVZrLZuTO5B_DMcigsA5gOCfHZi3aLWdXBEAvn-Udw-278YSzCSV6ee4ukk3A8FGNv5v1CMQAwiX3luioOBttLhnZ507GxN8i0hMF98uEDz1U9EYrwnW6aHVxD66GM_75bCO8OwoXO7RlfQBs978dA2Vav7xvXQsLYxIcZzBgX6tMEckXt8HPUMWreQoDaKEls6btxe_xoljTWL6iEuadatwyjQg0SIZYMyAjGdRKs8-GbHxFN0mm0zPY3jSRAw"/>
+</div>
+<h3 class="text-sm font-black text-on-surface truncate mb-1">Aura Belt</h3>
+<div class="flex flex-col gap-1 mt-auto">
+<div class="flex items-center gap-1 text-[10px] font-bold text-on-surface-variant">
+<span class="material-symbols-outlined text-[12px]">monetization_on</span>
+<span>800 C</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-black text-tertiary">+1.5k XP</span>
+<button class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Item 5 -->
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative transition-all hover:ring-4 hover:ring-primary/20 hover:scale-[1.02]">
+<div class="bg-surface-container-highest rounded-xl aspect-square mb-3 flex items-center justify-center overflow-hidden relative">
+<img alt="Sonic headset" class="w-4/5 h-4/5 object-contain group-hover:scale-110 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPeEKm0fZNl_ZskOyfBNw8VVjc0aXMvas4cMJh2h4fll38VbultZcPDx8ganSvybnInJicW-H3SLT_xz2hNHia0Rm0HMFQBMQb4DXrQgXgtTeDGhQDmlaaSxfWvp0CVF_umlrr7qSCYxJpDaYCQEMmcobUygKnpo0qq8IajglCc5qy91i72fZfsJvhyADEBdIzX4H6C7cUSBBt1exQLcsReKDbV3Mgif_-K-GCqHumJUjsEHXL_-0zSh9kOOpuRoVUho6Q63b9lhI"/>
+</div>
+<h3 class="text-sm font-black text-on-surface truncate mb-1">Sonic headset</h3>
+<div class="flex flex-col gap-1 mt-auto">
+<div class="flex items-center gap-1 text-[10px] font-bold text-on-surface-variant">
+<span class="material-symbols-outlined text-[12px]">payments</span>
+<span>150 G</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-black text-tertiary">+3.0k XP</span>
+<button class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bundle Card (Adapted) -->
+<div class="bg-gradient-to-br from-primary to-primary-container rounded-2xl p-4 flex flex-col items-center justify-center text-center text-on-primary relative overflow-hidden group">
+<div class="absolute -bottom-4 -right-4 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
+<span class="material-symbols-outlined text-2xl mb-1" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h3 class="text-xs font-black leading-tight mb-1">Bundle!</h3>
+<p class="text-[10px] opacity-90 mb-2 leading-tight">Unlock <span class="italic underline">Glow</span> effect.</p>
+<button class="bg-white text-primary px-3 py-1 rounded-full font-black text-[9px] hover:scale-105 transition-transform">UNLOCK</button>
+</div>
+<!-- Duplicated Items for density visualization -->
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative opacity-60">
+<div class="bg-tertiary-container/30 rounded-xl aspect-square mb-3 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl opacity-20">inventory_2</span>
+</div>
+<div class="h-3 w-3/4 bg-on-surface/5 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-on-surface/5 rounded mb-4"></div>
+<div class="flex justify-between items-center mt-auto">
+<div class="h-3 w-10 bg-on-surface/5 rounded"></div>
+<div class="w-6 h-6 bg-on-surface/5 rounded-full"></div>
+</div>
+</div>
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative opacity-60">
+<div class="bg-primary-container/30 rounded-xl aspect-square mb-3 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl opacity-20">inventory_2</span>
+</div>
+<div class="h-3 w-3/4 bg-on-surface/5 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-on-surface/5 rounded mb-4"></div>
+<div class="flex justify-between items-center mt-auto">
+<div class="h-3 w-10 bg-on-surface/5 rounded"></div>
+<div class="w-6 h-6 bg-on-surface/5 rounded-full"></div>
+</div>
+</div>
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative opacity-60">
+<div class="bg-secondary-container/30 rounded-xl aspect-square mb-3 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl opacity-20">inventory_2</span>
+</div>
+<div class="h-3 w-3/4 bg-on-surface/5 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-on-surface/5 rounded mb-4"></div>
+<div class="flex justify-between items-center mt-auto">
+<div class="h-3 w-10 bg-on-surface/5 rounded"></div>
+<div class="w-6 h-6 bg-on-surface/5 rounded-full"></div>
+</div>
+</div>
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative opacity-60">
+<div class="bg-outline-variant/10 rounded-xl aspect-square mb-3 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl opacity-20">inventory_2</span>
+</div>
+<div class="h-3 w-3/4 bg-on-surface/5 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-on-surface/5 rounded mb-4"></div>
+<div class="flex justify-between items-center mt-auto">
+<div class="h-3 w-10 bg-on-surface/5 rounded"></div>
+<div class="w-6 h-6 bg-on-surface/5 rounded-full"></div>
+</div>
+</div>
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative opacity-60">
+<div class="bg-surface-container-highest/30 rounded-xl aspect-square mb-3 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl opacity-20">inventory_2</span>
+</div>
+<div class="h-3 w-3/4 bg-on-surface/5 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-on-surface/5 rounded mb-4"></div>
+<div class="flex justify-between items-center mt-auto">
+<div class="h-3 w-10 bg-on-surface/5 rounded"></div>
+<div class="w-6 h-6 bg-on-surface/5 rounded-full"></div>
+</div>
+</div>
+<div class="group bg-surface-container-low rounded-2xl p-3 flex flex-col relative opacity-60">
+<div class="bg-primary/5 rounded-xl aspect-square mb-3 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl opacity-20">inventory_2</span>
+</div>
+<div class="h-3 w-3/4 bg-on-surface/5 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-on-surface/5 rounded mb-4"></div>
+<div class="flex justify-between items-center mt-auto">
+<div class="h-3 w-10 bg-on-surface/5 rounded"></div>
+<div class="w-6 h-6 bg-on-surface/5 rounded-full"></div>
+</div>
+</div>
+</section>
+<!-- Ready to Apply Section -->
+<section class="bg-surface-container rounded-[2rem] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+<div class="max-w-xl text-center md:text-left relative z-10">
+<h2 class="text-3xl md:text-4xl font-black text-on-surface mb-3">Ready to Apply?</h2>
+<p class="text-base font-medium text-on-surface-variant leading-relaxed">
+                  The boutique AI has calculated this is your most efficient path to Level 40. 
+                  The transaction will deduct your currency and instantly boost your stats.
+                </p>
+</div>
+<div class="flex flex-col items-center gap-3 relative z-10">
+<button class="bg-gradient-to-r from-primary to-primary-container text-white text-xl font-black px-10 py-5 rounded-full shadow-[0_15px_30px_rgba(168,33,110,0.25)] hover:scale-105 active:scale-95 transition-all w-full md:w-56">
+                  Apply!
+                </button>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60 italic">Double tap to confirm</p>
+</div>
+<!-- Aesthetic overlaps -->
+<div class="absolute -right-10 -bottom-10 w-64 h-64 bg-primary/5 rounded-full border border-primary/10"></div>
+</section>
+</main>
+<!-- Footer Section -->
+<footer class="bg-pink-100 dark:bg-fuchsia-900/40 rounded-t-[3rem] mt-12 flex flex-col items-center gap-6 py-12 px-4 w-full">
+<div class="text-lg font-black text-pink-800 dark:text-pink-200">GLIMMER BOUTIQUE</div>
+<div class="flex gap-8">
+<a class="font-be-vietnam text-sm font-medium text-pink-500 dark:text-pink-400 hover:underline decoration-2 underline-offset-4 transition-all duration-300 ease-in-out" href="#">About</a>
+<a class="font-be-vietnam text-sm font-medium text-pink-500 dark:text-pink-400 hover:underline decoration-2 underline-offset-4 transition-all duration-300 ease-in-out" href="#">Support</a>
+<a class="font-be-vietnam text-sm font-medium text-pink-500 dark:text-pink-400 hover:underline decoration-2 underline-offset-4 transition-all duration-300 ease-in-out" href="#">Privacy</a>
+<a class="font-be-vietnam text-sm font-medium text-pink-500 dark:text-pink-400 hover:underline decoration-2 underline-offset-4 transition-all duration-300 ease-in-out" href="#">Terms</a>
+</div>
+<p class="text-pink-600 dark:text-pink-300 font-be-vietnam text-sm font-medium opacity-60">© 2024 GLIMMER BOUTIQUE. STAY PLAYFUL.</p>
+</footer>
+</body></html>
