@@ -9,15 +9,13 @@ import {
 } from 'lucide-react'
 import {
   SPRING,
-  useSaved,
-  SavedBadge,
   BouncyToggle,
   ShimmerButton,
 } from '@/components/glimmer/optimizer-ui'
 
 
 /* ════════════════════════════════════════
-   SEGMENTED CONTROL — Revenue / XP / Gems
+   SEGMENTED CONTROL — Revenue / XP / Gems (multi-select)
    ════════════════════════════════════════ */
 type Goal = 'Revenue' | 'XP' | 'Gems'
 const GOAL_ICONS: Record<Goal, React.ElementType> = {
@@ -25,46 +23,101 @@ const GOAL_ICONS: Record<Goal, React.ElementType> = {
   XP:      Star,
   Gems:    Gem,
 }
-function SegmentedControl({ value, onChange }: { value: Goal; onChange: (g: Goal) => void }) {
-  const options: Goal[] = ['Revenue', 'XP', 'Gems']
+
+function isUnsupportedGoals(goals: Goal[]): boolean {
+  return goals.includes('Gems') || goals.length > 1
+}
+
+function GoalWarning({ goals }: { goals: Goal[] }) {
+  if (!isUnsupportedGoals(goals)) return null
+
+  const hasGems = goals.includes('Gems')
+  const isCombo = goals.length > 1
+
+  let message: string
+  if (hasGems && isCombo) {
+    message = 'Gems combos aren\'t supported yet — only Revenue or XP alone.'
+  } else if (hasGems) {
+    message = 'Gems optimization isn\'t supported yet. Try Revenue or XP.'
+  } else {
+    message = 'Multi-goal optimization isn\'t supported yet — only Revenue or XP alone.'
+  }
+
   return (
-    <div className="flex p-1.5 bg-[#ffd7f0] rounded-full gap-1">
-      {options.map((opt) => {
-        const Icon = GOAL_ICONS[opt]
-        const active = value === opt
-        return (
-          <motion.button
-            key={opt}
-            type="button"
-            onClick={() => onChange(opt)}
-            whileTap={{ scale: 0.94 }}
-            transition={SPRING}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-sm font-black
-                        transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/30
-                        cursor-pointer
-                        ${active
-                          ? 'bg-[#B02E7A] text-white shadow-lg'
-                          : 'text-[#966988] hover:text-[#B02E7A]'
-                        }`}
-            style={{ fontFamily: 'var(--font-headline)' }}
-          >
-            {active && (
-              <motion.div layoutId="seg-indicator" transition={SPRING} className="contents">
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+      className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200
+                 rounded-2xl px-3.5 py-2.5"
+    >
+      <span className="text-amber-500 mt-0.5 shrink-0 text-base leading-none">⚠️</span>
+      <p className="text-xs font-semibold text-amber-700 leading-relaxed">{message}</p>
+    </motion.div>
+  )
+}
+
+function SegmentedControl({ value, onChange }: { value: Goal[]; onChange: (g: Goal[]) => void }) {
+  const options: Goal[] = ['Revenue', 'XP', 'Gems']
+
+  const toggle = (opt: Goal) => {
+    if (value.includes(opt)) {
+      // Don't allow deselecting the last goal
+      if (value.length === 1) return
+      onChange(value.filter((g) => g !== opt))
+    } else {
+      onChange([...value, opt])
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex p-1.5 bg-[#ffd7f0] rounded-full gap-1">
+        {options.map((opt) => {
+          const Icon = GOAL_ICONS[opt]
+          const active = value.includes(opt)
+          return (
+            <motion.button
+              key={opt}
+              type="button"
+              onClick={() => toggle(opt)}
+              whileTap={{ scale: 0.94 }}
+              transition={SPRING}
+              aria-pressed={active}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-sm font-black
+                          transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/30
+                          cursor-pointer
+                          ${active
+                            ? 'bg-[#B02E7A] text-white shadow-lg'
+                            : 'text-[#966988] hover:text-[#B02E7A]'
+                          }`}
+              style={{ fontFamily: 'var(--font-headline)' }}
+            >
+              {active && (
                 <Icon className="w-3.5 h-3.5" aria-hidden="true" />
-              </motion.div>
-            )}
-            {opt}
-          </motion.button>
-        )
-      })}
+              )}
+              {opt}
+            </motion.button>
+          )
+        })}
+      </div>
+      <GoalWarning goals={value} />
     </div>
   )
 }
 
 /* ════════════════════════════════════════
-   SLOT COUNTER — +/- pill counter
+   SLOT COUNTER — +/- pill counter with keyboard input
    ════════════════════════════════════════ */
 function SlotCounter({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null)
+
+  const commit = (raw: string) => {
+    const n = parseInt(raw, 10)
+    if (!isNaN(n)) onChange(Math.min(99, Math.max(1, n)))
+    setDraft(null)
+  }
+
   return (
     <div className="flex items-center gap-3 mt-1">
       <motion.button
@@ -86,11 +139,23 @@ function SlotCounter({ value, onChange }: { value: number; onChange: (n: number)
         initial={{ scale: 0.8, opacity: 0.6 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={SPRING}
-        className="flex-1 h-12 rounded-full bg-[#FFF0F5] flex items-center justify-center
-                   font-black text-2xl text-[#46223e] shadow-inner"
-        style={{ fontFamily: 'var(--font-headline)' }}
+        className="flex-1 h-12 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner"
       >
-        {value}
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={draft ?? value}
+          onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
+          onBlur={(e) => commit(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+          }}
+          aria-label="Item slots"
+          className="w-full text-center bg-transparent font-black text-2xl text-[#46223e]
+                     focus:outline-none caret-[#B02E7A] select-all"
+          style={{ fontFamily: 'var(--font-headline)' }}
+        />
       </motion.div>
       <motion.button
         type="button"
@@ -123,12 +188,11 @@ interface OptimizerCardProps {
   accentColor: string
   children: React.ReactNode
   delay?: number
-  saved?: boolean
   shouldReduce: boolean
 }
 function OptimizerCard({
   icon: Icon, iconColor, iconBg, title, subtitle, accentColor,
-  children, delay = 0, saved = false, shouldReduce,
+  children, delay = 0, shouldReduce,
 }: OptimizerCardProps) {
   return (
     <motion.div
@@ -163,7 +227,6 @@ function OptimizerCard({
               >
                 {title}
               </h3>
-              <SavedBadge visible={saved} />
             </div>
             <p className="text-sm text-[#784e6c] font-medium">{subtitle}</p>
           </div>
@@ -223,12 +286,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
   const [orderFull, setOrderFull]   = useState(true)
   const [repeatItems, setRepeatItems] = useState(false)
   const [itemSlots, setItemSlots]   = useState(24)
-  const [goal, setGoal]             = useState<Goal>('Revenue')
-  const orderSaved  = useSaved()
-  const repeatSaved = useSaved()
-  const slotSaved   = useSaved()
-  const goalSaved   = useSaved()
-  const optimizeSaved = useSaved()
+  const [goals, setGoals]           = useState<Goal[]>(['Revenue'])
 
   /* ── Optimization progress overlay ── */
   const STEPS = [
@@ -254,17 +312,14 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
       setTimeout(() => setStepIdx(i + 1), (i + 1) * 1100)
     )
     stepTimers.current.push(
-      setTimeout(() => { setOverlayState('done'); optimizeSaved.trigger() }, STEPS.length * 1100)
+      setTimeout(() => setOverlayState('done'), STEPS.length * 1100)
     )
   }
 
   // Cleanup on unmount
   useEffect(() => () => { stepTimers.current.forEach(clearTimeout) }, [])
 
-  const handleToggle = (
-    setter: (v: boolean) => void,
-    savedHook: ReturnType<typeof useSaved>,
-  ) => (v: boolean) => { setter(v); savedHook.trigger() }
+  const handleToggle = (setter: (v: boolean) => void) => (v: boolean) => setter(v)
 
   const navLinks       = ['Home', 'Schedule', 'Optimizer', 'Results']
   const mobileNavIcons = [Home, Calendar, Settings, BarChart2]
@@ -424,7 +479,6 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                 title="Order Full Collection"
                 subtitle="Sync all sets together"
                 accentColor="#ff6cb5"
-                saved={orderSaved.saved}
                 delay={0.1}
                 shouldReduce={shouldReduce}
               >
@@ -433,7 +487,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                     id="toggle-order-full"
                     label="Toggle order full collection"
                     checked={orderFull}
-                    onChange={handleToggle(setOrderFull, orderSaved)}
+                    onChange={handleToggle(setOrderFull)}
                   />
                 </div>
               </OptimizerCard>
@@ -446,7 +500,6 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                 title="Repeat Items"
                 subtitle="Allow multiple copies"
                 accentColor="#56f1e0"
-                saved={repeatSaved.saved}
                 delay={0.15}
                 shouldReduce={shouldReduce}
               >
@@ -455,7 +508,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                     id="toggle-repeat"
                     label="Toggle repeat items"
                     checked={repeatItems}
-                    onChange={handleToggle(setRepeatItems, repeatSaved)}
+                    onChange={handleToggle(setRepeatItems)}
                   />
                 </div>
               </OptimizerCard>
@@ -483,13 +536,12 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                 title="Item Slots"
                 subtitle="Max display capacity"
                 accentColor="#fcbcff"
-                saved={slotSaved.saved}
                 delay={0.18}
                 shouldReduce={shouldReduce}
               >
                 <SlotCounter
                   value={itemSlots}
-                  onChange={(n) => { setItemSlots(n); slotSaved.trigger() }}
+                  onChange={setItemSlots}
                 />
               </OptimizerCard>
 
@@ -501,13 +553,12 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                 title="Optimization Goal"
                 subtitle="What matters most today?"
                 accentColor="#ff6cb5"
-                saved={goalSaved.saved}
                 delay={0.22}
                 shouldReduce={shouldReduce}
               >
                 <SegmentedControl
-                  value={goal}
-                  onChange={(g) => { setGoal(g); goalSaved.trigger() }}
+                  value={goals}
+                  onChange={setGoals}
                 />
               </OptimizerCard>
             </div>
@@ -551,7 +602,6 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                 Estimated improvement:{' '}
                 <span className="text-[#00675f] font-black not-italic">+18% Efficiency</span>
               </p>
-              <SavedBadge visible={optimizeSaved.saved} />
             </div>
           </motion.div>
 

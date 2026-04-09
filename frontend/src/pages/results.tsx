@@ -9,62 +9,79 @@ import {
 const SPRING = { type: 'spring', stiffness: 400, damping: 15 } as const
 
 /* ─── Data ─── */
-interface Product {
-  name: string
-  profit: string
-  xp: string
-  tag: string
+interface Item {
+  position: number
+  item: string
+  price: number      // coins
+  experience: number // xp
+  units: number
+  revenue: number
+  // visual helpers
   tagColor: string
   icon: React.ElementType
   iconBg: string
 }
 
-interface TimeSlot {
-  time: string
-  label: string
+interface Collection {
+  collection: string
   color: string
   borderColor: string
-  products: Product[]
+  items: Item[]
 }
 
-const TIME_SLOTS: TimeSlot[] = [
+const COLLECTIONS: Collection[] = [
   {
-    time: '09:00',
-    label: 'Morning Slot',
+    collection: 'Arena',
     color: 'text-[#a8216e]',
     borderColor: 'border-[#a8216e]/20',
-    products: [
+    items: [
       {
-        name: 'Arena Gloves',
-        profit: '250 G',
-        xp: '+2,400 XP',
-        tag: 'ELITE',
+        position: 1,
+        item: 'Arena Gloves',
+        price: 250,
+        experience: 2400,
+        units: 5,
+        revenue: 1250,
         tagColor: 'bg-[#56f1e0] text-[#00423c]',
         icon: Shield,
         iconBg: 'bg-[#56f1e0]/40',
       },
+      {
+        position: 4,
+        item: 'Arena Shield',
+        price: 420,
+        experience: 1800,
+        units: 3,
+        revenue: 1260,
+        tagColor: 'bg-[#56f1e0] text-[#00423c]',
+        icon: Shield,
+        iconBg: 'bg-[#56f1e0]/30',
+      },
     ],
   },
   {
-    time: '11:00',
-    label: 'Midday Peak',
+    collection: 'Neon',
     color: 'text-[#9720ab]',
     borderColor: 'border-[#9720ab]/20',
-    products: [
+    items: [
       {
-        name: 'Neon Visor',
-        profit: '1.2k G',
-        xp: '+3,100 XP',
-        tag: 'RARE',
+        position: 2,
+        item: 'Neon Visor',
+        price: 320,
+        experience: 3100,
+        units: 4,
+        revenue: 1280,
         tagColor: 'bg-[#ff6cb5] text-[#4a002c]',
         icon: Glasses,
         iconBg: 'bg-[#ff6cb5]/30',
       },
       {
-        name: 'Swift Boots',
-        profit: '300 G',
-        xp: '+4,200 XP',
-        tag: 'SPEED',
+        position: 3,
+        item: 'Swift Boots',
+        price: 180,
+        experience: 4200,
+        units: 8,
+        revenue: 1440,
         tagColor: 'bg-[#fcbcff] text-[#5d006d]',
         icon: Zap,
         iconBg: 'bg-[#fcbcff]/40',
@@ -72,25 +89,28 @@ const TIME_SLOTS: TimeSlot[] = [
     ],
   },
   {
-    time: '15:00',
-    label: 'Afternoon Rush',
+    collection: 'Core',
     color: 'text-[#00675f]',
     borderColor: 'border-[#00675f]/20',
-    products: [
+    items: [
       {
-        name: 'Aura Belt',
-        profit: '800 G',
-        xp: '+1,500 XP',
-        tag: 'CORE',
+        position: 5,
+        item: 'Aura Belt',
+        price: 400,
+        experience: 1500,
+        units: 2,
+        revenue: 800,
         tagColor: 'bg-[#d09ec0]/30 text-[#784e6c]',
         icon: CircleDot,
         iconBg: 'bg-[#d09ec0]/20',
       },
       {
-        name: 'Sonic Headset',
-        profit: '150 G',
-        xp: '+3,000 XP',
-        tag: 'GEAR',
+        position: 6,
+        item: 'Sonic Headset',
+        price: 150,
+        experience: 3000,
+        units: 6,
+        revenue: 900,
         tagColor: 'bg-[#ffcfee] text-[#46223e]',
         icon: Headphones,
         iconBg: 'bg-[#ffcfee]/60',
@@ -99,17 +119,17 @@ const TIME_SLOTS: TimeSlot[] = [
   },
 ]
 
-const TABLE_ROWS = TIME_SLOTS.flatMap((slot) =>
-  slot.products.map((p) => ({ ...p, time: slot.time, timeColor: slot.color }))
-)
+const ALL_ITEMS = COLLECTIONS
+  .flatMap((c) => c.items.map((item) => ({ ...item, collection: c.collection, collectionColor: c.color })))
+  .sort((a, b) => a.position - b.position)
 
-/* ─── Product Card ─── */
-function ProductCard({ product, delay, shouldReduce }: {
-  product: Product
+/* ─── Item Card ─── */
+function ItemCard({ item, delay, shouldReduce }: {
+  item: Item
   delay: number
   shouldReduce: boolean
 }) {
-  const Icon = product.icon
+  const Icon = item.icon
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -123,29 +143,46 @@ function ProductCard({ product, delay, shouldReduce }: {
                  hover:shadow-[0_12px_32px_rgba(176,46,122,0.15)]
                  transition-shadow duration-200 cursor-default"
     >
-      <div className={`w-16 h-16 ${product.iconBg} rounded-xl flex items-center
-                       justify-center shrink-0`}>
-        <Icon className="w-8 h-8 text-[#B02E7A]" aria-hidden="true" />
+      {/* Icon + position badge */}
+      <div className="relative shrink-0">
+        <div className={`w-16 h-16 ${item.iconBg} rounded-xl flex items-center justify-center`}>
+          <Icon className="w-8 h-8 text-[#B02E7A]" aria-hidden="true" />
+        </div>
+        <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bubblegum-gradient
+                         text-white text-[9px] font-black flex items-center justify-center
+                         shadow-sm">
+          {item.position}
+        </span>
       </div>
-      <div className="flex flex-col justify-between overflow-hidden">
+
+      {/* Info */}
+      <div className="flex flex-col justify-between overflow-hidden flex-1 min-w-0">
         <div>
           <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5
-                            rounded ${product.tagColor}`}>
-            {product.tag}
+                            rounded ${item.tagColor}`}>
+            Collection
           </span>
           <h3 className="font-black text-sm text-[#46223e] mt-1 truncate"
               style={{ fontFamily: 'var(--font-headline)' }}>
-            {product.name}
+            {item.item}
           </h3>
         </div>
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1 text-[11px] font-bold text-[#00675f]">
-            <DollarSign className="w-3 h-3" aria-hidden="true" />
-            {product.profit} Profit
+        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-1">
+          <div className="flex items-center gap-1 text-[11px] font-bold text-[#9720ab]">
+            <Gem className="w-3 h-3" aria-hidden="true" />
+            {item.price.toLocaleString()} coins
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-[#B02E7A]">
             <Star className="w-3 h-3" aria-hidden="true" />
-            {product.xp}
+            {item.experience.toLocaleString()} XP
+          </div>
+          <div className="flex items-center gap-1 text-[11px] font-bold text-[#784e6c]">
+            <LayoutGrid className="w-3 h-3" aria-hidden="true" />
+            {item.units} units
+          </div>
+          <div className="flex items-center gap-1 text-[11px] font-bold text-[#00675f]">
+            <DollarSign className="w-3 h-3" aria-hidden="true" />
+            {item.revenue.toLocaleString()} rev
           </div>
         </div>
       </div>
@@ -163,10 +200,14 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
   const navLinks = ['Home', 'Schedule', 'Optimizer', 'Results']
   const mobileNavIcons = [Home, Calendar, Settings, BarChart2]
 
+  const totalXP      = ALL_ITEMS.reduce((s, i) => s + i.experience * i.units, 0)
+  const totalRevenue = ALL_ITEMS.reduce((s, i) => s + i.revenue, 0)
+  const totalUnits   = ALL_ITEMS.reduce((s, i) => s + i.units, 0)
+
   const summaryChips = [
-    { label: 'Total XP', value: '+14,200', icon: Star, color: 'text-[#B02E7A]' },
-    { label: 'Total Profit', value: '3,450 G', icon: Gem, color: 'text-[#9720ab]' },
-    { label: 'Total Gems', value: '850', icon: DollarSign, color: 'text-[#00675f]' },
+    { label: 'Total XP',      value: `+${totalXP.toLocaleString()}`,      icon: Star,       color: 'text-[#B02E7A]' },
+    { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} G`, icon: DollarSign, color: 'text-[#00675f]' },
+    { label: 'Total Units',   value: totalUnits.toLocaleString(),          icon: Gem,        color: 'text-[#9720ab]' },
   ]
 
   return (
@@ -342,7 +383,7 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
           </motion.div>
         </header>
 
-        {/* ── VISUAL TIMELINE ── */}
+        {/* ── VISUAL VIEW ── */}
         {view === 'visual' && (
           <motion.div
             key="visual"
@@ -351,29 +392,29 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
             transition={{ duration: 0.3 }}
             className="flex flex-col gap-8 mb-16"
           >
-            {TIME_SLOTS.map((slot, si) => (
-              <div key={slot.time} className="relative flex flex-col md:flex-row gap-6">
-                {/* Time label */}
+            {COLLECTIONS.map((col, ci) => (
+              <div key={col.collection} className="relative flex flex-col md:flex-row gap-6">
+                {/* Collection label */}
                 <div className="md:w-36 shrink-0 pt-2">
                   <div className="sticky top-24 flex flex-col items-center md:items-end">
-                    <span className={`text-2xl font-black ${slot.color}`}
+                    <span className={`text-2xl font-black ${col.color}`}
                           style={{ fontFamily: 'var(--font-headline)' }}>
-                      {slot.time}
+                      {col.collection}
                     </span>
                     <span className="text-[10px] font-bold uppercase tracking-tighter text-[#784e6c]">
-                      {slot.label}
+                      Collection
                     </span>
                   </div>
                 </div>
 
                 {/* Cards */}
                 <div className={`flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4
-                                 border-l-4 ${slot.borderColor} pl-6 pb-4`}>
-                  {slot.products.map((product, pi) => (
-                    <ProductCard
-                      key={product.name}
-                      product={product}
-                      delay={0.05 * si + 0.06 * pi}
+                                 border-l-4 ${col.borderColor} pl-6 pb-4`}>
+                  {col.items.map((item, ii) => (
+                    <ItemCard
+                      key={item.item}
+                      item={item}
+                      delay={0.05 * ci + 0.06 * ii}
                       shouldReduce={shouldReduce}
                     />
                   ))}
@@ -398,39 +439,97 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-[#ffd7f0] border-b border-[#d09ec0]/20">
-                    {['Time', 'Product', 'Category', 'Profit (G)', 'XP Reward'].map((h, i) => (
-                      <th key={h}
-                          className={`px-6 py-4 text-xs font-black uppercase tracking-wider
-                                      text-[#784e6c] ${i === 4 ? 'text-right' : ''}`}>
-                        {h}
+                    {[
+                      { label: '#',           align: 'text-center' },
+                      { label: 'Collection',  align: '' },
+                      { label: 'Item',        align: '' },
+                      { label: 'Price (coins)', align: 'text-right' },
+                      { label: 'XP',          align: 'text-right' },
+                      { label: 'Units',       align: 'text-right' },
+                      { label: 'Revenue',     align: 'text-right' },
+                    ].map(({ label, align }) => (
+                      <th key={label}
+                          className={`px-5 py-4 text-xs font-black uppercase tracking-wider
+                                      text-[#784e6c] ${align}`}>
+                        {label}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#d09ec0]/10">
-                  {TABLE_ROWS.map((row, i) => (
+                  {ALL_ITEMS.map((row, i) => (
                     <motion.tr
-                      key={`${row.time}-${row.name}`}
+                      key={`${row.collection}-${row.item}`}
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.06 }}
                       className="hover:bg-[#ffecf5]/60 transition-colors duration-150"
                     >
-                      <td className={`px-6 py-4 font-black ${row.timeColor}`}
-                          style={{ fontFamily: 'var(--font-headline)' }}>
-                        {row.time}
-                      </td>
-                      <td className="px-6 py-4 font-bold text-[#46223e]">{row.name}</td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black ${row.tagColor}`}>
-                          {row.tag}
+                      {/* Position */}
+                      <td className="px-5 py-4 text-center">
+                        <span className="inline-flex items-center justify-center w-6 h-6
+                                         bubblegum-gradient text-white text-[10px] font-black
+                                         rounded-full shadow-sm">
+                          {row.position}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-bold text-[#00675f]">{row.profit}</td>
-                      <td className="px-6 py-4 font-bold text-[#B02E7A] text-right">{row.xp}</td>
+                      {/* Collection */}
+                      <td className={`px-5 py-4 font-black text-sm ${row.collectionColor}`}
+                          style={{ fontFamily: 'var(--font-headline)' }}>
+                        {row.collection}
+                      </td>
+                      {/* Item */}
+                      <td className="px-5 py-4 font-bold text-[#46223e]">{row.item}</td>
+                      {/* Price */}
+                      <td className="px-5 py-4 text-right">
+                        <span className="inline-flex items-center gap-1 font-bold text-[#9720ab] text-sm">
+                          <Gem className="w-3 h-3" aria-hidden="true" />
+                          {row.price.toLocaleString()}
+                        </span>
+                      </td>
+                      {/* XP */}
+                      <td className="px-5 py-4 text-right">
+                        <span className="inline-flex items-center gap-1 font-bold text-[#B02E7A] text-sm">
+                          <Star className="w-3 h-3" aria-hidden="true" />
+                          {row.experience.toLocaleString()}
+                        </span>
+                      </td>
+                      {/* Units */}
+                      <td className="px-5 py-4 text-right font-bold text-[#784e6c]">
+                        {row.units}
+                      </td>
+                      {/* Revenue */}
+                      <td className="px-5 py-4 text-right">
+                        <span className="inline-flex items-center gap-1 font-bold text-[#00675f] text-sm">
+                          <DollarSign className="w-3 h-3" aria-hidden="true" />
+                          {row.revenue.toLocaleString()}
+                        </span>
+                      </td>
                     </motion.tr>
                   ))}
                 </tbody>
+
+                {/* Totals footer */}
+                <tfoot>
+                  <tr className="bg-[#ffd7f0]/50 border-t-2 border-[#d09ec0]/30">
+                    <td colSpan={3}
+                        className="px-5 py-3 text-xs font-black uppercase tracking-wider text-[#784e6c]">
+                      Totals
+                    </td>
+                    <td className="px-5 py-3 text-right text-xs font-black text-[#9720ab]">
+                      —
+                    </td>
+                    <td className="px-5 py-3 text-right text-xs font-black text-[#B02E7A]">
+                      +{totalXP.toLocaleString()}
+                    </td>
+                    <td className="px-5 py-3 text-right text-xs font-black text-[#784e6c]">
+                      {totalUnits}
+                    </td>
+                    <td className="px-5 py-3 text-right text-xs font-black text-[#00675f]">
+                      {totalRevenue.toLocaleString()} G
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </motion.div>
