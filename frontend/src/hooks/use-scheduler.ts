@@ -1,13 +1,21 @@
 import { create } from 'zustand'
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const INIT = (): boolean[][] => Array.from({ length: 24 }, () => Array(7).fill(false))
+
+function authHeaders() {
+  const token = localStorage.getItem('auth_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 interface SchedulerState {
   grid: boolean[][]
+  saving: boolean
   toggleCell: (hour: number, day: number) => void
   setCells: (cells: { hour: number; day: number }[], value: boolean) => void
   resetGrid: () => void
-  saveGrid: () => void
+  saveGrid: () => Promise<void>
+  loadGrid: () => Promise<void>
 }
 
 export const useScheduler = create<SchedulerState>((set, get) => ({
@@ -18,6 +26,8 @@ export const useScheduler = create<SchedulerState>((set, get) => ({
     } catch {}
     return INIT()
   })(),
+
+  saving: false,
 
   toggleCell: (hour, day) =>
     set((s) => ({
@@ -37,9 +47,31 @@ export const useScheduler = create<SchedulerState>((set, get) => ({
 
   resetGrid: () => set({ grid: INIT() }),
 
-  saveGrid: () => {
+  saveGrid: async () => {
+    const { grid } = get()
+    set({ saving: true })
     try {
-      localStorage.setItem('scheduler-grid', JSON.stringify(get().grid))
+      await fetch(`${API_BASE}/schedule`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ grid }),
+      })
+      // Keep localStorage in sync as a fallback cache
+      localStorage.setItem('scheduler-grid', JSON.stringify(grid))
+    } finally {
+      set({ saving: false })
+    }
+  },
+
+  loadGrid: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/schedule`, {
+        headers: authHeaders(),
+      })
+      if (!res.ok) return
+      const { grid } = await res.json()
+      set({ grid })
+      localStorage.setItem('scheduler-grid', JSON.stringify(grid))
     } catch {}
   },
 }))

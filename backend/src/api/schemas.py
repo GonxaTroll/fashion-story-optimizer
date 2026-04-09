@@ -29,3 +29,11 @@ class UserResponse(BaseModel):
     notifications: bool
     dark_mode: bool
     stay_playful: bool
+
+
+class ScheduleUpdateRequest(BaseModel):
+    grid: list[list[bool]]  # grid[hour][day], hour 0-23, day 0=Mon … 6=Sun
+
+
+class ScheduleResponse(BaseModel):
+    grid: list[list[bool]]  # same shape as ScheduleUpdateRequest.grid

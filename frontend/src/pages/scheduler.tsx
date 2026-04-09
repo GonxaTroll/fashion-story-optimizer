@@ -50,7 +50,7 @@ const INFO_CARDS = [
 interface Props { onSignOut: () => void; onNavigate: (page: string) => void }
 
 export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
-  const { grid, toggleCell, setCells, resetGrid, saveGrid } = useScheduler()
+  const { grid, saving, toggleCell, setCells, resetGrid, saveGrid, loadGrid } = useScheduler()
   const shouldReduce = useReducedMotion() ?? false
 
   /* ─── Drag-to-select (refs avoid re-renders during drag) ─── */
@@ -58,6 +58,7 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
   const dragValue  = useRef(false)
 
   useEffect(() => {
+    loadGrid()
     const stop = () => { isDragging.current = false }
     window.addEventListener('pointerup', stop)
     return () => window.removeEventListener('pointerup', stop)
@@ -282,14 +283,27 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
                   whileTap={{ scale: 0.95 }}
                   transition={SPRING}
                   onClick={saveGrid}
+                  disabled={saving}
                   className="bubblegum-gradient text-white px-8 py-3.5 rounded-full font-black
                              text-base shadow-[0_15px_30px_rgba(168,33,110,0.30)] cursor-pointer
                              focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/50
-                             flex items-center gap-2"
+                             flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                   style={{ fontFamily: 'var(--font-headline)' }}
                 >
-                  <Save className="w-4 h-4" aria-hidden="true" />
-                  Save Changes
+                  {saving ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Saving…
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" aria-hidden="true" />
+                      Save Changes
+                    </>
+                  )}
                 </motion.button>
                 <motion.button
                   whileHover={shouldReduce ? {} : { scale: 1.05, y: -2 }}

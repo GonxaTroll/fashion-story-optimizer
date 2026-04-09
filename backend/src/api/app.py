@@ -4,7 +4,7 @@ FastAPI application factory.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routers import auth
+from src.api.routers import auth, schedule
 from src.db.database import init_db
 
 app = FastAPI(
@@ -28,6 +28,7 @@ def startup():
 
 
 app.include_router(auth.router)
+app.include_router(schedule.router)
 
 
 @app.get("/health")
