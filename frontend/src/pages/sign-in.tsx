@@ -5,6 +5,8 @@ import { Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, Zap } from 'lucide-react
 /* ─── Admin credentials (demo) ─── */
 const DEMO = { email: 'admin@fashstopt.com', password: 'admin1234' }
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
 interface Props {
   onSignIn: () => void
 }
@@ -27,16 +29,32 @@ export default function SignInPage({ onSignIn }: Props) {
     setError('')
   }
 
-  const handleSubmit = (e: { preventDefault(): void }) => {
+  const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault()
     if (loading) return
     setError('')
+    setLoading(true)
 
-    if (email === DEMO.email && password === DEMO.password) {
-      setLoading(true)
-      setTimeout(() => onSignIn(), 1400)
-    } else {
-      setError('Incorrect email or password.')
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data?.detail ?? 'Incorrect email or password.')
+        return
+      }
+
+      const { access_token } = await res.json()
+      localStorage.setItem('auth_token', access_token)
+      onSignIn()
+    } catch {
+      setError('Could not reach the server. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
