@@ -37,3 +37,27 @@ class ScheduleUpdateRequest(BaseModel):
 
 class ScheduleResponse(BaseModel):
     grid: list[list[bool]]  # same shape as ScheduleUpdateRequest.grid
+
+
+class OptimizeRequest(BaseModel):
+    order_full_collection: bool
+    repeat_items: bool
+    slots: int = Field(ge=1)
+    optimization_goal: list[str] = Field(min_length=1)
+
+
+class OptimizeResultItem(BaseModel):
+    hour: int
+    item_id: int
+    slot: int
+    title: str
+    collection: str
+    duration: float
+    revenue: float
+    xp: int
+    cost: float
+
+
+class OptimizeResponse(BaseModel):
+    optimization_date: str
+    results: list[OptimizeResultItem]

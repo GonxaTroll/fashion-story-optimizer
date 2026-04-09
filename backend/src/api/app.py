@@ -4,7 +4,7 @@ FastAPI application factory.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routers import auth, schedule
+from src.api.routers import auth, optimizer, schedule
 from src.db.database import init_db
 
 app = FastAPI(
@@ -15,7 +15,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
+    allow_origin_regex=r"http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,6 +29,7 @@ def startup():
 
 app.include_router(auth.router)
 app.include_router(schedule.router)
+app.include_router(optimizer.router)
 
 
 @app.get("/health")

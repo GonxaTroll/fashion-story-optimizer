@@ -1,0 +1,138 @@
+"""optimizer.py
+Router for triggering and retrieving optimization runs.
+"""
+from datetime import datetime, timezone
+from pathlib import Path
+
+import duckdb
+import pandas as pd
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from src.api.dependencies import get_current_user_id, get_db
+from src.api.schemas import OptimizeRequest, OptimizeResponse, OptimizeResultItem
+from src.data.read_data import read_data
+from src.models.milp_solver import FashionSolver
+
+router = APIRouter(prefix="/optimize", tags=["optimize"])
+
+N_DAYS = 7  # weekly scheduling horizon
+
+# Map frontend goal labels to catalog column names
+_GOAL_COLUMN: dict[str, str] = {
+    "revenue": "revenue",
+    "xp": "xp",
+    "gems": "revenue",  # not yet supported — fall back to revenue
+}
+
+
+def _build_unavailable_times(conn: duckdb.DuckDBPyConnection, user_id: str) -> list[int]:
+    """Return flat hour indices (0-167) that are NOT in the user's schedule."""
+    rows = conn.execute(
+        "SELECT day_of_week, hour FROM user_schedule WHERE user_id = ?",
+        [user_id],
+    ).fetchall()
+    available = {(day, hour) for day, hour in rows}
+    return [
+        day * 24 + hour
+        for day in range(N_DAYS)
+        for hour in range(24)
+        if (day, hour) not in available
+    ]
+
+
+def _load_data_for_goal(goal: str) -> pd.DataFrame:
+    """Load catalog and set the 'benefit' column to the chosen goal metric."""
+    col = _GOAL_COLUMN.get(goal.lower(), "revenue")
+    data = read_data()
+    data["benefit"] = data[col]
+    return data
+
+
+@router.post("", response_model=OptimizeResponse)
+def run_optimization(
+    body: OptimizeRequest,
+    user_id: str = Depends(get_current_user_id),
+    conn: duckdb.DuckDBPyConnection = Depends(get_db),
+):
+    optimization_date = datetime.now(timezone.utc)
+
+    # 1 — Persist parameters
+    conn.execute(
+        """
+        INSERT INTO experimentation_parameters
+            (user_id, optimization_date, order_full_collection,
+             repeat_items, slots, optimization_goal)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        [
+            user_id,
+            optimization_date,
+            body.order_full_collection,
+            body.repeat_items,
+            body.slots,
+            body.optimization_goal,
+        ],
+    )
+
+    # 2 — Build unavailable times from the user's weekly schedule
+    unavailable = _build_unavailable_times(conn, user_id)
+
+    # 3 — Load data with the correct goal metric
+    primary_goal = body.optimization_goal[0] if body.optimization_goal else "revenue"
+    data = _load_data_for_goal(primary_goal)
+
+    # 4 — Run solver
+    try:
+        solver = FashionSolver(
+            slots=body.slots,
+            n_days_to_schedule=N_DAYS,
+            unavailable_times=unavailable,
+            data=data,
+        )
+        status_code = solver.solve()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Solver error: {exc}",
+        )
+
+    if not solver.is_solved:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Solver could not find a feasible solution. Try adjusting your schedule or settings.",
+        )
+
+    result_df = solver.get_best_product_choice()
+
+    # 5 — Persist results
+    if not result_df.empty:
+        rows = [
+            (optimization_date, user_id, int(row["hour"]), int(row["id"]))
+            for _, row in result_df.iterrows()
+        ]
+        conn.executemany(
+            "INSERT INTO optimization_results (optimization_date, user_id, hour, item_id) VALUES (?, ?, ?, ?)",
+            rows,
+        )
+
+    # 6 — Build response
+    items: list[OptimizeResultItem] = []
+    for _, row in result_df.iterrows():
+        items.append(
+            OptimizeResultItem(
+                hour=int(row["hour"]),
+                item_id=int(row["id"]),
+                slot=int(row["slot"]),
+                title=str(row.get("title", "")),
+                collection=str(row.get("collection", "")),
+                duration=float(row.get("duration", 0)),
+                revenue=float(row.get("revenue", 0)),
+                xp=int(row.get("xp", 0)),
+                cost=float(row.get("cost", 0)),
+            )
+        )
+
+    return OptimizeResponse(
+        optimization_date=optimization_date.isoformat(),
+        results=items,
+    )

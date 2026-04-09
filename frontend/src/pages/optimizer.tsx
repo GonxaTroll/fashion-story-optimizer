@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, User, LogOut,
@@ -295,25 +296,65 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
     { id: 'run',     label: 'Running optimization',     detail: 'Crunching the numbers…'         },
     { id: 'finalize',label: 'Finalizing results',       detail: 'Building your optimal timeline…'},
   ]
-  type OverlayState = 'idle' | 'running' | 'done'
+  type OverlayState = 'idle' | 'running' | 'done' | 'error'
   const [overlayState, setOverlayState] = useState<OverlayState>('idle')
+  const [overlayError, setOverlayError] = useState('')
   const [stepIdx, setStepIdx] = useState(0)
   const stepTimers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const shouldReduce = useReducedMotion() ?? false
 
-  const handleOptimize = () => {
+  const handleOptimize = async () => {
     if (overlayState !== 'idle') return
-    setStepIdx(0)
-    setOverlayState('running')
-    // Advance one step every ~1.1 s, then mark done
+
+    // flushSync guarantees the overlay renders before the fetch fires,
+    // preventing React 18 from batching the running→idle transition away.
+    flushSync(() => {
+      setStepIdx(0)
+      setOverlayError('')
+      setOverlayState('running')
+    })
+
     stepTimers.current.forEach(clearTimeout)
-    stepTimers.current = STEPS.slice(1).map((_, i) =>
-      setTimeout(() => setStepIdx(i + 1), (i + 1) * 1100)
+    stepTimers.current = [1, 2, 3].map((i) =>
+      setTimeout(() => setStepIdx(i), i * 1100)
     )
-    stepTimers.current.push(
-      setTimeout(() => setOverlayState('done'), STEPS.length * 1100)
-    )
+
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+      const token = localStorage.getItem('auth_token')
+      const res = await fetch(`${API_BASE}/optimize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          order_full_collection: orderFull,
+          repeat_items: repeatItems,
+          slots: itemSlots,
+          optimization_goal: goals.map((g) => g.toLowerCase()),
+        }),
+      })
+
+      stepTimers.current.forEach(clearTimeout)
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setOverlayError(body?.detail ?? `Server error (${res.status})`)
+        setOverlayState('error')
+        return
+      }
+
+      const data = await res.json()
+      localStorage.setItem('optimization_results', JSON.stringify(data))
+      setStepIdx(3)
+      stepTimers.current = [setTimeout(() => setOverlayState('done'), 600)]
+    } catch (err) {
+      stepTimers.current.forEach(clearTimeout)
+      setOverlayError('Could not reach the server. Is the backend running?')
+      setOverlayState('error')
+    }
   }
 
   // Cleanup on unmount
@@ -685,64 +726,68 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
           >
             {/* Header */}
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-11 h-11 rounded-2xl bg-[#ffdff2] flex items-center justify-center shrink-0">
-                {overlayState === 'done'
-                  ? <CheckCircle2 className="w-6 h-6 text-[#00675f]" aria-hidden="true" />
-                  : <Loader2 className="w-6 h-6 text-[#B02E7A] animate-spin" aria-hidden="true" />
-                }
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0
+                ${overlayState === 'error' ? 'bg-[#fff0f4]' : 'bg-[#ffdff2]'}`}>
+                {overlayState === 'done'  && <CheckCircle2 className="w-6 h-6 text-[#00675f]" aria-hidden="true" />}
+                {overlayState === 'error' && <span className="text-lg" aria-hidden="true">⚠️</span>}
+                {(overlayState === 'running') && <Loader2 className="w-6 h-6 text-[#B02E7A] animate-spin" aria-hidden="true" />}
               </div>
               <div>
                 <h2 className="font-black text-lg text-[#46223e]"
                     style={{ fontFamily: 'var(--font-headline)' }}>
-                  {overlayState === 'done' ? 'Optimization Complete!' : 'Optimizing Your Shop'}
+                  {overlayState === 'done'  ? 'Optimization Complete!' :
+                   overlayState === 'error' ? 'Something went wrong' :
+                   'Optimizing Your Shop'}
                 </h2>
                 <p className="text-xs text-[#784e6c] font-medium">
-                  {overlayState === 'done'
-                    ? 'Your optimal timeline is ready.'
-                    : STEPS[stepIdx]?.detail}
+                  {overlayState === 'done'  ? 'Your optimal timeline is ready.' :
+                   overlayState === 'error' ? overlayError :
+                   STEPS[stepIdx]?.detail}
                 </p>
               </div>
             </div>
 
-            {/* Progress bar */}
-            <div className="h-2.5 bg-[#ffd7f0] rounded-full overflow-hidden mb-6">
-              <motion.div
-                className="h-full bubblegum-gradient rounded-full"
-                animate={{
-                  width: overlayState === 'done'
-                    ? '100%'
-                    : `${((stepIdx + 1) / STEPS.length) * 100}%`,
-                }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-              />
-            </div>
+            {/* Progress bar — hidden on error */}
+            {overlayState !== 'error' && (
+              <div className="h-2.5 bg-[#ffd7f0] rounded-full overflow-hidden mb-6">
+                <motion.div
+                  className="h-full bubblegum-gradient rounded-full"
+                  animate={{
+                    width: overlayState === 'done'
+                      ? '100%'
+                      : `${((stepIdx + 1) / STEPS.length) * 100}%`,
+                  }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                />
+              </div>
+            )}
 
-            {/* Steps list */}
-            <ol className="space-y-3 mb-8">
-              {STEPS.map((step, i) => {
-                const isDone    = overlayState === 'done' || i < stepIdx
-                const isActive  = overlayState === 'running' && i === stepIdx
-                const isPending = !isDone && !isActive
-                return (
-                  <li key={step.id} className="flex items-center gap-3">
-                    {isDone ? (
-                      <CheckCircle2 className="w-5 h-5 text-[#00675f] shrink-0" aria-hidden="true" />
-                    ) : isActive ? (
-                      <Loader2 className="w-5 h-5 text-[#B02E7A] animate-spin shrink-0" aria-hidden="true" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-[#d09ec0] shrink-0" aria-hidden="true" />
-                    )}
-                    <span className={`text-sm font-bold transition-colors duration-300
-                      ${isDone ? 'text-[#00675f]' : isActive ? 'text-[#B02E7A]' : 'text-[#d09ec0]'}
-                      ${isPending ? '' : ''}`}>
-                      {step.label}
-                    </span>
-                  </li>
-                )
-              })}
-            </ol>
+            {/* Steps list — hidden on error */}
+            {overlayState !== 'error' && (
+              <ol className="space-y-3 mb-8">
+                {STEPS.map((step, i) => {
+                  const isDone   = overlayState === 'done' || i < stepIdx
+                  const isActive = overlayState === 'running' && i === stepIdx
+                  return (
+                    <li key={step.id} className="flex items-center gap-3">
+                      {isDone ? (
+                        <CheckCircle2 className="w-5 h-5 text-[#00675f] shrink-0" aria-hidden="true" />
+                      ) : isActive ? (
+                        <Loader2 className="w-5 h-5 text-[#B02E7A] animate-spin shrink-0" aria-hidden="true" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-[#d09ec0] shrink-0" aria-hidden="true" />
+                      )}
+                      <span className={`text-sm font-bold transition-colors duration-300
+                        ${isDone ? 'text-[#00675f]' : isActive ? 'text-[#B02E7A]' : 'text-[#d09ec0]'}`}>
+                        {step.label}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
 
-            {/* CTA — only shown when done */}
+            {/* CTA — done state */}
             {overlayState === 'done' && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -771,6 +816,24 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                   Stay here
                 </button>
               </motion.div>
+            )}
+
+            {/* CTA — error state */}
+            {overlayState === 'error' && (
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setOverlayState('idle')}
+                className="w-full mt-4 bg-[#fff0f4] text-[#b41340] border border-[#f74b6d]/20
+                           py-3.5 rounded-full font-black text-sm cursor-pointer
+                           focus:outline-none focus:ring-2 focus:ring-[#b41340]/30"
+                style={{ fontFamily: 'var(--font-headline)' }}
+              >
+                Dismiss
+              </motion.button>
             )}
           </motion.div>
         </motion.div>

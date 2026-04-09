@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { flushSync } from 'react-dom'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const INIT = (): boolean[][] => Array.from({ length: 24 }, () => Array(7).fill(false))
@@ -49,14 +50,14 @@ export const useScheduler = create<SchedulerState>((set, get) => ({
 
   saveGrid: async () => {
     const { grid } = get()
-    set({ saving: true })
+    // flushSync ensures the spinner renders before the fetch fires
+    flushSync(() => set({ saving: true }))
     try {
       await fetch(`${API_BASE}/schedule`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ grid }),
       })
-      // Keep localStorage in sync as a fallback cache
       localStorage.setItem('scheduler-grid', JSON.stringify(grid))
     } finally {
       set({ saving: false })
