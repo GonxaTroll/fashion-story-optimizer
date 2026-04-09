@@ -9,7 +9,10 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.api.dependencies import get_current_user_id, get_db
-from src.api.schemas import OptimizeRequest, OptimizeResponse, OptimizeResultItem
+from src.api.schemas import (
+    LatestResultItem, LatestResultsResponse,
+    OptimizeRequest, OptimizeResponse, OptimizeResultItem,
+)
 from src.data.read_data import read_data
 from src.models.milp_solver import FashionSolver
 
@@ -134,5 +137,58 @@ def run_optimization(
 
     return OptimizeResponse(
         optimization_date=optimization_date.isoformat(),
+        results=items,
+    )
+
+
+@router.get("/latest", response_model=LatestResultsResponse)
+def get_latest_results(
+    user_id: str = Depends(get_current_user_id),
+    conn: duckdb.DuckDBPyConnection = Depends(get_db),
+):
+    """Return the most recent optimization run for this user."""
+    row = conn.execute(
+        "SELECT MAX(optimization_date) FROM optimization_results WHERE user_id = ?",
+        [user_id],
+    ).fetchone()
+
+    if row is None or row[0] is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No results yet")
+
+    latest_date = row[0]
+
+    result_rows = conn.execute(
+        """
+        SELECT hour, item_id, slot
+        FROM optimization_results
+        WHERE user_id = ? AND optimization_date = ?
+        ORDER BY slot, hour
+        """,
+        [user_id, latest_date],
+    ).fetchall()
+
+    catalog = read_data().set_index("id").to_dict("index")
+
+    items: list[LatestResultItem] = []
+    for hour, item_id, slot in result_rows:
+        info = catalog.get(item_id)
+        if info is None:
+            continue
+        items.append(
+            LatestResultItem(
+                hour=int(hour),
+                slot=int(slot),
+                title=str(info["title"]),
+                collection=str(info["collection"]),
+                cost=float(info["cost"]),
+                xp=int(info["xp"]),
+                units=int(info["units"]),
+                revenue=float(info["revenue"]),
+                duration=float(info["duration"]),
+            )
+        )
+
+    return LatestResultsResponse(
+        optimization_date=latest_date.isoformat() if hasattr(latest_date, "isoformat") else str(latest_date),
         results=items,
     )

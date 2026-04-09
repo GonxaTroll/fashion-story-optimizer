@@ -61,3 +61,20 @@ class OptimizeResultItem(BaseModel):
 class OptimizeResponse(BaseModel):
     optimization_date: str
     results: list[OptimizeResultItem]
+
+
+class LatestResultItem(BaseModel):
+    hour: int
+    slot: int
+    title: str
+    collection: str
+    cost: float
+    xp: int
+    units: int
+    revenue: float
+    duration: float
+
+
+class LatestResultsResponse(BaseModel):
+    optimization_date: str  # ISO string
+    results: list[LatestResultItem]
