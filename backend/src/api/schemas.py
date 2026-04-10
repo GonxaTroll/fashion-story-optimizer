@@ -73,6 +73,7 @@ class LatestResultItem(BaseModel):
     units: int
     revenue: float
     duration: float
+    order_position: int | None = None
 
 
 class LatestResultsResponse(BaseModel):

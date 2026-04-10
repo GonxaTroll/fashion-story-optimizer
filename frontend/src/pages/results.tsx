@@ -20,6 +20,7 @@ interface ApiResultItem {
   units: number
   revenue: number
   duration: number
+  order_position: number | null
 }
 
 interface ApiResponse {
@@ -28,8 +29,9 @@ interface ApiResponse {
 }
 
 interface Item {
-  position: number
-  hour: number
+  orderPosition: number | null
+  hours: number[]
+  count: number
   item: string
   price: number
   experience: number
@@ -65,37 +67,46 @@ const COLLECTION_PALETTE = [
 ]
 
 /* ─── Helpers ─── */
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-function scheduledAt(flatHour: number): string {
-  const day  = Math.floor(flatHour / 24)
-  const hour = flatHour % 24
-  return `${DAYS[day] ?? 'Day?'} ${String(hour).padStart(2, '0')}:00`
-}
 
 function toCollections(results: ApiResultItem[]): Collection[] {
   const sorted = [...results].sort((a, b) => a.slot - b.slot || a.hour - b.hour)
-  const groupMap = new Map<string, ApiResultItem[]>()
+
+  // Group by collection
+  const collectionMap = new Map<string, ApiResultItem[]>()
   sorted.forEach((r) => {
-    if (!groupMap.has(r.collection)) groupMap.set(r.collection, [])
-    groupMap.get(r.collection)!.push(r)
+    if (!collectionMap.has(r.collection)) collectionMap.set(r.collection, [])
+    collectionMap.get(r.collection)!.push(r)
   })
 
-  let position = 1
-  let colIdx   = 0
+  let paletteIdx = 0
+  let colIdx = 0
   const collections: Collection[] = []
 
-  for (const [name, apiItems] of groupMap) {
+  for (const [name, apiItems] of collectionMap) {
+    // Deduplicate by title within collection
+    const titleMap = new Map<string, ApiResultItem & { hours: number[]; totalCount: number }>()
+    apiItems.forEach((r) => {
+      if (!titleMap.has(r.title)) {
+        titleMap.set(r.title, { ...r, hours: [r.hour], totalCount: 1 })
+      } else {
+        const entry = titleMap.get(r.title)!
+        entry.totalCount++
+        if (!entry.hours.includes(r.hour)) entry.hours.push(r.hour)
+      }
+    })
+
     const colPalette = COLLECTION_PALETTE[colIdx++ % COLLECTION_PALETTE.length]
     collections.push({
       collection: name,
       color: colPalette.color,
       borderColor: colPalette.borderColor,
-      items: apiItems.map((r) => {
-        const p = ITEM_PALETTE[(position - 1) % ITEM_PALETTE.length]
+      items: Array.from(titleMap.values()).map((r) => {
+        const p = ITEM_PALETTE[paletteIdx++ % ITEM_PALETTE.length]
         return {
-          position: position++,
-          hour: r.hour,
+          orderPosition: r.order_position,
+          hours: r.hours,
+          count: r.totalCount,
           item: r.title,
           price: r.cost,
           experience: r.xp,
@@ -123,45 +134,57 @@ function formatDate(iso: string): string {
   }
 }
 
-/* ─── Item Card ─── */
-function ItemCard({ item, delay, shouldReduce }: {
-  item: Item; delay: number; shouldReduce: boolean
+/* ─── Timeline Item Card ─── */
+function TimelineCard({ item, collectionColor, delay, shouldReduce }: {
+  item: Item & { collection: string; collectionColor: string }
+  collectionColor: string
+  delay: number
+  shouldReduce: boolean
 }) {
   const Icon = item.icon
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, x: 16 }}
+      whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true, margin: '-40px' }}
-      transition={{ delay, duration: 0.35 }}
-      whileHover={shouldReduce ? {} : { scale: 1.02 }}
+      transition={{ delay, duration: 0.32 }}
+      whileHover={shouldReduce ? {} : { scale: 1.015 }}
       whileTap={{ scale: 0.97 }}
-      className="bg-white rounded-2xl p-4 flex gap-4
+      className="bg-white rounded-2xl p-4 flex gap-4 flex-1
                  shadow-[0_4px_16px_rgba(176,46,122,0.07)]
                  hover:shadow-[0_12px_32px_rgba(176,46,122,0.15)]
                  transition-shadow duration-200 cursor-default"
     >
-      {/* Icon + position badge */}
+      {/* Icon + badges */}
       <div className="relative shrink-0">
-        <div className={`w-16 h-16 ${item.iconBg} rounded-xl flex items-center justify-center`}>
-          <Icon className="w-8 h-8 text-[#B02E7A]" aria-hidden="true" />
+        <div className={`w-14 h-14 ${item.iconBg} rounded-xl flex items-center justify-center`}>
+          <Icon className="w-7 h-7 text-[#B02E7A]" aria-hidden="true" />
         </div>
-        <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bubblegum-gradient
-                         text-white text-[9px] font-black flex items-center justify-center shadow-sm">
-          {item.position}
-        </span>
+        {item.orderPosition != null && (
+          <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bubblegum-gradient
+                           text-white text-[9px] font-black flex items-center justify-center shadow-sm">
+            {item.orderPosition}
+          </span>
+        )}
+        {item.count > 1 && (
+          <span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] h-5 rounded-full
+                           bg-[#9720ab] text-white text-[9px] font-black
+                           flex items-center justify-center shadow-sm px-1">
+            x{item.count}
+          </span>
+        )}
       </div>
 
       {/* Info */}
       <div className="flex flex-col justify-between overflow-hidden flex-1 min-w-0">
         <div>
-          <div className="flex items-center justify-between gap-1 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${item.tagColor}`}>
               {item.item.split(' ').slice(-1)[0]}
             </span>
-            <span className="flex items-center gap-0.5 text-[9px] font-bold text-[#966988] bg-[#ffecf5] px-1.5 py-0.5 rounded-full shrink-0">
-              <Clock className="w-2.5 h-2.5" aria-hidden="true" />
-              {scheduledAt(item.hour)}
+            <span className={`text-[10px] font-black ${collectionColor}`}
+                  style={{ fontFamily: 'var(--font-headline)' }}>
+              {item.collection}
             </span>
           </div>
           <h3 className="font-black text-sm text-[#46223e] mt-1 truncate"
@@ -218,11 +241,30 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
 
   const allItems = collections.flatMap((c) =>
     c.items.map((i) => ({ ...i, collection: c.collection, collectionColor: c.color }))
-  ).sort((a, b) => a.position - b.position)
+  ).sort((a, b) => (a.orderPosition ?? 9999) - (b.orderPosition ?? 9999))
 
-  const totalXP      = allItems.reduce((s, i) => s + i.experience, 0)
-  const totalRevenue = allItems.reduce((s, i) => s + i.revenue, 0)
-  const totalItems   = allItems.length
+  const totalXP      = allItems.reduce((s, i) => s + i.experience * i.count, 0)
+  const totalRevenue = allItems.reduce((s, i) => s + i.revenue * i.count, 0)
+  const totalItems   = allItems.reduce((s, i) => s + i.count, 0)
+
+  // Compute Monday of the week the optimization ran (day 0 = Mon 00:00)
+  function weekMonday(): Date {
+    const base = optimizedAt ? new Date(optimizedAt) : new Date()
+    base.setHours(0, 0, 0, 0)
+    const dow = base.getDay() // 0=Sun, 1=Mon, …6=Sat
+    base.setDate(base.getDate() + (dow === 0 ? -6 : 1 - dow))
+    return base
+  }
+
+  // Format a flat hour (0-167) as an actual calendar time (Mon of opt week = hour 0)
+  function formatFlatHour(flatHour: number): string {
+    const base = weekMonday()
+    const d = new Date(base)
+    d.setDate(d.getDate() + Math.floor(flatHour / 24))
+    const hour = flatHour % 24
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      + ` ${String(hour).padStart(2, '0')}:00`
+  }
 
   const summaryChips = [
     { label: 'Total XP',      value: `+${totalXP.toLocaleString()}`,      icon: Star,       color: 'text-[#B02E7A]' },
@@ -442,43 +484,115 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
           </motion.div>
         )}
 
-        {/* ── VISUAL VIEW ── */}
-        {!loading && allItems.length > 0 && view === 'visual' && (
-          <motion.div
-            key="visual"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="flex flex-col gap-8 mb-16"
-          >
-            {collections.map((col, ci) => (
-              <div key={col.collection} className="relative flex flex-col md:flex-row gap-6">
-                <div className="md:w-36 shrink-0 pt-2">
-                  <div className="sticky top-24 flex flex-col items-center md:items-end">
-                    <span className={`text-2xl font-black ${col.color}`}
+        {/* ── VISUAL VIEW — Timeline ── */}
+        {!loading && allItems.length > 0 && view === 'visual' && (() => {
+          // Day 0 = Monday of the optimization week (matches solver's day_of_week=0 convention)
+          const baseDate = weekMonday()
+
+          function actualDate(dayIdx: number): Date {
+            const d = new Date(baseDate)
+            d.setDate(d.getDate() + dayIdx)
+            return d
+          }
+
+          function dayHeader(dayIdx: number): string {
+            return actualDate(dayIdx).toLocaleDateString('en-US', {
+              weekday: 'short', month: 'short', day: 'numeric',
+            })
+          }
+
+          function dayShort(dayIdx: number): string {
+            return actualDate(dayIdx).toLocaleDateString('en-US', { weekday: 'short' })
+          }
+
+          // Expand each item into one entry per unique hour, then sort
+          const entries: Array<{ flatHour: number; item: typeof allItems[0] }> = []
+          allItems.forEach((item) => {
+            item.hours.forEach((h) => entries.push({ flatHour: h, item }))
+          })
+          entries.sort((a, b) => a.flatHour - b.flatHour)
+
+          // Group by day index
+          const byDay = new Map<number, typeof entries>()
+          entries.forEach((e) => {
+            const day = Math.floor(e.flatHour / 24)
+            if (!byDay.has(day)) byDay.set(day, [])
+            byDay.get(day)!.push(e)
+          })
+
+          return (
+            <motion.div
+              key="visual"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-10 mb-16"
+            >
+              {Array.from(byDay.entries()).map(([day, dayEntries]) => (
+                <div key={day}>
+                  {/* Day header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xl font-black text-[#B02E7A]"
                           style={{ fontFamily: 'var(--font-headline)' }}>
-                      {col.collection}
+                      {dayHeader(day)}
                     </span>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter text-[#784e6c]">
-                      Collection
+                    <div className="flex-1 h-px bg-[#d09ec0]/30" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#966988]">
+                      {dayEntries.length} {dayEntries.length === 1 ? 'item' : 'items'}
                     </span>
                   </div>
+
+                  {/* Timeline entries */}
+                  <div className="relative pl-2">
+                    {/* Vertical line */}
+                    <div className="absolute left-[2.35rem] top-0 bottom-0 w-px bg-[#d09ec0]/40" aria-hidden="true" />
+
+                    <div className="flex flex-col gap-4">
+                      {dayEntries.map((entry, ei) => {
+                        const hour = entry.flatHour % 24
+                        return (
+                          <motion.div
+                            key={`${entry.flatHour}-${entry.item.item}`}
+                            initial={{ opacity: 0, y: 12 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: '-32px' }}
+                            transition={{ delay: ei * 0.06, duration: 0.32 }}
+                            className="flex items-start gap-4"
+                          >
+                            {/* Time bubble */}
+                            <div className="shrink-0 flex flex-col items-center w-[4.5rem]">
+                              <div className="w-[4.5rem] bg-[#ffd7f0] rounded-xl px-1 py-1.5
+                                              flex flex-col items-center shadow-sm
+                                              border border-[#d09ec0]/20">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-[#966988]">
+                                  {dayShort(day)}
+                                </span>
+                                <span className="text-base font-black text-[#B02E7A] leading-none"
+                                      style={{ fontFamily: 'var(--font-headline)' }}>
+                                  {String(hour).padStart(2, '0')}:00
+                                </span>
+                              </div>
+                              {/* Connector dot */}
+                              <div className="w-2.5 h-2.5 rounded-full bubblegum-gradient mt-1 shadow-sm" />
+                            </div>
+
+                            {/* Card */}
+                            <TimelineCard
+                              item={entry.item}
+                              collectionColor={entry.item.collectionColor}
+                              delay={0}
+                              shouldReduce={shouldReduce}
+                            />
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <div className={`flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4
-                                 border-l-4 ${col.borderColor} pl-6 pb-4`}>
-                  {col.items.map((item, ii) => (
-                    <ItemCard
-                      key={`${item.item}-${item.hour}`}
-                      item={item}
-                      delay={0.05 * ci + 0.06 * ii}
-                      shouldReduce={shouldReduce}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </motion.div>
-        )}
+              ))}
+            </motion.div>
+          )
+        })()}
 
         {/* ── TABLE VIEW ── */}
         {!loading && allItems.length > 0 && view === 'table' && (
@@ -495,7 +609,7 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-[#ffd7f0] border-b border-[#d09ec0]/20">
-                    {['#', 'Scheduled', 'Collection', 'Item', 'Price (coins)', 'XP', 'Units', 'Revenue'].map((label) => (
+                    {['Pos', 'Scheduled', 'Collection', 'Item', 'Price (coins)', 'XP', 'Units', 'Revenue'].map((label) => (
                       <th key={label}
                           className={`px-5 py-4 text-xs font-black uppercase tracking-wider text-[#784e6c]
                                      ${['Price (coins)', 'XP', 'Units', 'Revenue'].includes(label) ? 'text-right' : ''}`}>
@@ -507,44 +621,62 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                 <tbody className="divide-y divide-[#d09ec0]/10">
                   {allItems.map((row, i) => (
                     <motion.tr
-                      key={`${row.collection}-${row.item}-${row.hour}`}
+                      key={`${row.collection}-${row.item}`}
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.04 }}
                       className="hover:bg-[#ffecf5]/60 transition-colors duration-150"
                     >
                       <td className="px-5 py-4 text-center">
-                        <span className="inline-flex items-center justify-center w-6 h-6
-                                         bubblegum-gradient text-white text-[10px] font-black
-                                         rounded-full shadow-sm">
-                          {row.position}
-                        </span>
+                        {row.orderPosition != null ? (
+                          <span className="inline-flex items-center justify-center w-6 h-6
+                                           bubblegum-gradient text-white text-[10px] font-black
+                                           rounded-full shadow-sm">
+                            {row.orderPosition}
+                          </span>
+                        ) : (
+                          <span className="text-[#d09ec0] text-xs font-bold">—</span>
+                        )}
                       </td>
-                      <td className="px-5 py-4 text-xs font-bold text-[#966988] whitespace-nowrap">
-                        {scheduledAt(row.hour)}
+                      <td className="px-5 py-4 text-xs font-bold text-[#966988]">
+                        <div className="flex flex-col gap-0.5">
+                          {row.hours.map((h) => (
+                            <span key={h} className="whitespace-nowrap">{formatFlatHour(h)}</span>
+                          ))}
+                        </div>
                       </td>
                       <td className={`px-5 py-4 font-black text-sm ${row.collectionColor}`}
                           style={{ fontFamily: 'var(--font-headline)' }}>
                         {row.collection}
                       </td>
-                      <td className="px-5 py-4 font-bold text-[#46223e]">{row.item}</td>
+                      <td className="px-5 py-4 font-bold text-[#46223e]">
+                        <span>{row.item}</span>
+                        {row.count > 1 && (
+                          <span className="ml-2 text-[9px] font-black bg-[#9720ab] text-white
+                                           px-1.5 py-0.5 rounded-full">
+                            x{row.count}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-5 py-4 text-right">
                         <span className="inline-flex items-center gap-1 font-bold text-[#9720ab] text-sm">
                           <Gem className="w-3 h-3" aria-hidden="true" />
-                          {row.price.toLocaleString()}
+                          {(row.price * row.count).toLocaleString()}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
                         <span className="inline-flex items-center gap-1 font-bold text-[#B02E7A] text-sm">
                           <Star className="w-3 h-3" aria-hidden="true" />
-                          {row.experience.toLocaleString()}
+                          {(row.experience * row.count).toLocaleString()}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-right font-bold text-[#784e6c]">{row.units}</td>
+                      <td className="px-5 py-4 text-right font-bold text-[#784e6c]">
+                        {(row.units * row.count).toLocaleString()}
+                      </td>
                       <td className="px-5 py-4 text-right">
                         <span className="inline-flex items-center gap-1 font-bold text-[#00675f] text-sm">
                           <DollarSign className="w-3 h-3" aria-hidden="true" />
-                          {row.revenue.toLocaleString()}
+                          {(row.revenue * row.count).toLocaleString()}
                         </span>
                       </td>
                     </motion.tr>

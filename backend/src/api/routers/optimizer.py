@@ -185,6 +185,7 @@ def get_latest_results(
                 units=int(info["units"]),
                 revenue=float(info["revenue"]),
                 duration=float(info["duration"]),
+                order_position=int(info["order"]) if info.get("order") is not None and str(info.get("order")).strip() not in ("", "nan") else None,
             )
         )
 
