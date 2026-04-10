@@ -6,7 +6,7 @@ import {
   Layers, RefreshCw, LayoutGrid, Target,
   Zap, TrendingUp, Gem, Star,
   Home, Calendar, Settings, BarChart2,
-  CheckCircle2, Circle, Loader2,
+  CheckCircle2, Circle, Loader2, X, Clock,
 } from 'lucide-react'
 import {
   SPRING,
@@ -289,6 +289,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
   const [repeatItems, setRepeatItems] = useState(false)
   const [maxCopies, setMaxCopies]     = useState<number | null>(null) // null = infinite
   const [itemSlots, setItemSlots]     = useState(24)
+  const [maxTime, setMaxTime]         = useState(5) // minutes
   const [goals, setGoals]             = useState<Goal[]>(['Revenue'])
 
   /* ── Optimization progress overlay ── */
@@ -304,10 +305,19 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
   const [stepIdx, setStepIdx] = useState(0)
   const stepTimers = useRef<ReturnType<typeof setTimeout>[]>([])
 
+  /* ── Background-run tracking (dismissed overlay while solver still running) ── */
+  const bgRunningRef = useRef(false)  // ref so async closure always sees current value
+  const [bgRunning, setBgRunning] = useState(false) // state for button disable / UI
+
+  type Banner = { show: boolean; status: 'success' | 'error'; message: string }
+  const [banner, setBanner] = useState<Banner>({ show: false, status: 'success', message: '' })
+
   const shouldReduce = useReducedMotion() ?? false
 
   const handleOptimize = async () => {
-    if (overlayState !== 'idle') return
+    if (overlayState !== 'idle' || bgRunning) return
+
+    bgRunningRef.current = false
 
     // flushSync guarantees the overlay renders before the fetch fires,
     // preventing React 18 from batching the running→idle transition away.
@@ -317,8 +327,11 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
       setOverlayState('running')
     })
 
+    // Only advance to step 2 ("Running optimization") via timers.
+    // Step 3 is set manually once the fetch resolves, so the spinner
+    // stays on "Running optimization" for the entire solver duration.
     stepTimers.current.forEach(clearTimeout)
-    stepTimers.current = [1, 2, 3].map((i) =>
+    stepTimers.current = [1, 2].map((i) =>
       setTimeout(() => setStepIdx(i), i * 1100)
     )
 
@@ -337,6 +350,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
           max_copies: repeatItems ? maxCopies : null,
           slots: itemSlots,
           optimization_goal: goals.map((g) => g.toLowerCase()),
+          max_time_minutes: maxTime,
         }),
       })
 
@@ -344,20 +358,58 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        setOverlayError(body?.detail ?? `Server error (${res.status})`)
-        setOverlayState('error')
+        const errMsg = body?.detail ?? `Server error (${res.status})`
+        if (bgRunningRef.current) {
+          bgRunningRef.current = false
+          setBgRunning(false)
+          setBanner({ show: true, status: 'error', message: errMsg })
+        } else {
+          setOverlayError(errMsg)
+          setOverlayState('error')
+        }
         return
       }
 
       const data = await res.json()
       localStorage.setItem('optimization_results', JSON.stringify(data))
       setStepIdx(3)
-      stepTimers.current = [setTimeout(() => setOverlayState('done'), 600)]
+
+      stepTimers.current = [setTimeout(() => {
+        if (bgRunningRef.current) {
+          bgRunningRef.current = false
+          setBgRunning(false)
+          const isEmpty = !data?.results?.length
+          setBanner({
+            show: true,
+            status: isEmpty ? 'error' : 'success',
+            message: isEmpty
+              ? 'Optimization timed out — no solution found.'
+              : 'Optimization complete! Your schedule is ready.',
+          })
+        } else {
+          setOverlayState('done')
+        }
+      }, 600)]
     } catch (err) {
       stepTimers.current.forEach(clearTimeout)
-      setOverlayError('Could not reach the server. Is the backend running?')
-      setOverlayState('error')
+      const errMsg = 'Could not reach the server. Is the backend running?'
+      if (bgRunningRef.current) {
+        bgRunningRef.current = false
+        setBgRunning(false)
+        setBanner({ show: true, status: 'error', message: errMsg })
+      } else {
+        setOverlayError(errMsg)
+        setOverlayState('error')
+      }
     }
+  }
+
+  const handleDismissOverlay = () => {
+    if (overlayState === 'running') {
+      bgRunningRef.current = true
+      setBgRunning(true)
+    }
+    setOverlayState('idle')
   }
 
   // Cleanup on unmount
@@ -457,6 +509,47 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
           </div>
         </div>
       </motion.nav>
+
+      {/* ── BACKGROUND-RUN BANNER ── */}
+      {banner.show && (
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={SPRING}
+          className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] w-full max-w-lg px-4`}
+        >
+          <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl border
+            ${banner.status === 'success'
+              ? 'bg-[#edfff9] border-[#56f1e0] text-[#00675f]'
+              : 'bg-[#fff0f4] border-[#f74b6d]/30 text-[#b41340]'
+            }`}
+          >
+            {banner.status === 'success'
+              ? <CheckCircle2 className="w-5 h-5 shrink-0" aria-hidden="true" />
+              : <span className="text-base shrink-0" aria-hidden="true">⚠️</span>
+            }
+            <p className="flex-1 text-sm font-bold">{banner.message}</p>
+            {banner.status === 'success' && (
+              <motion.button
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={SPRING}
+                onClick={() => { setBanner(b => ({ ...b, show: false })); onNavigate('results') }}
+                className="text-xs font-black bg-[#00675f] text-white px-3 py-1.5
+                           rounded-full shrink-0 cursor-pointer"
+              >
+                View Results
+              </motion.button>
+            )}
+            <button
+              onClick={() => setBanner(b => ({ ...b, show: false }))}
+              className="text-current opacity-60 hover:opacity-100 transition-opacity
+                         cursor-pointer shrink-0 focus:outline-none"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       <main className="max-w-4xl mx-auto px-6 pt-32 pb-28">
 
@@ -724,6 +817,36 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
             </div>
           </div>
 
+          {/* ── SECTION 3: SOLVER SETTINGS ── */}
+          <div>
+            <motion.p
+              initial={shouldReduce ? false : { opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.12 }}
+              className="text-xs font-black uppercase tracking-[0.14em] text-[#966988] mb-4 ml-1"
+              style={{ fontFamily: 'var(--font-headline)' }}
+            >
+              Solver Settings
+            </motion.p>
+            <OptimizerCard
+              icon={Clock}
+              iconColor="#9720ab"
+              iconBg="#f3e8ff"
+              title="Max Solve Time"
+              subtitle="Stop solver after this many minutes"
+              accentColor="#fcbcff"
+              delay={0.26}
+              shouldReduce={shouldReduce}
+            >
+              <SlotCounter
+                value={maxTime}
+                onChange={(n) => setMaxTime(Math.max(1, Math.min(60, n)))}
+              />
+              <p className="text-center text-xs text-[#966988] font-medium mt-2">minutes</p>
+            </OptimizerCard>
+          </div>
+
           {/* ── BIG OPTIMIZE NOW CTA ── */}
           <motion.div
             initial={shouldReduce ? false : { opacity: 0, scale: 0.92 }}
@@ -737,7 +860,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                  className="absolute inset-0 bg-[#B02E7A]/15 blur-3xl rounded-full scale-y-50 pointer-events-none" />
 
             <div className="relative inline-block">
-              <ShimmerButton onClick={handleOptimize} disabled={overlayState !== 'idle'} size="hero">
+              <ShimmerButton onClick={handleOptimize} disabled={overlayState !== 'idle' || bgRunning} size="hero">
                 <>
                   <Zap className="w-7 h-7" aria-hidden="true" />
                   Optimize Now!
@@ -844,14 +967,14 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                        border border-[#ffd7f0]"
           >
             {/* Header */}
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-start gap-3 mb-8">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0
                 ${overlayState === 'error' ? 'bg-[#fff0f4]' : 'bg-[#ffdff2]'}`}>
-                {overlayState === 'done'  && <CheckCircle2 className="w-6 h-6 text-[#00675f]" aria-hidden="true" />}
-                {overlayState === 'error' && <span className="text-lg" aria-hidden="true">⚠️</span>}
-                {(overlayState === 'running') && <Loader2 className="w-6 h-6 text-[#B02E7A] animate-spin" aria-hidden="true" />}
+                {overlayState === 'done'    && <CheckCircle2 className="w-6 h-6 text-[#00675f]" aria-hidden="true" />}
+                {overlayState === 'error'   && <span className="text-lg" aria-hidden="true">⚠️</span>}
+                {overlayState === 'running' && <Loader2 className="w-6 h-6 text-[#B02E7A] animate-spin" aria-hidden="true" />}
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <h2 className="font-black text-lg text-[#46223e]"
                     style={{ fontFamily: 'var(--font-headline)' }}>
                   {overlayState === 'done'  ? 'Optimization Complete!' :
@@ -864,6 +987,17 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                    STEPS[stepIdx]?.detail}
                 </p>
               </div>
+              <motion.button
+                whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} transition={SPRING}
+                onClick={handleDismissOverlay}
+                aria-label="Close"
+                className="w-8 h-8 rounded-full bg-[#FFF0F5] flex items-center justify-center
+                           text-[#784e6c] hover:bg-[#ffdff2] hover:text-[#B02E7A]
+                           transition-colors duration-150 cursor-pointer shrink-0
+                           focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/30"
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </motion.button>
             </div>
 
             {/* Progress bar — hidden on error */}

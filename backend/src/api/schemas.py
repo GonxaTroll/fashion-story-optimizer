@@ -45,6 +45,7 @@ class OptimizeRequest(BaseModel):
     max_copies: int | None = Field(default=None, ge=1)  # None = infinite
     slots: int = Field(ge=1)
     optimization_goal: list[str] = Field(min_length=1)
+    max_time_minutes: int | None = Field(default=None, ge=1)  # None = no limit
 
 
 class OptimizeResultItem(BaseModel):

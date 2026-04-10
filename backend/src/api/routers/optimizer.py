@@ -1,6 +1,7 @@
 """optimizer.py
 Router for triggering and retrieving optimization runs.
 """
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -92,6 +93,10 @@ def run_optimization(
     data = _load_data_for_goal(primary_goal)
 
     # 4 — Run solver
+    # Budget covers both constraint creation and solving, so we measure wall time
+    # after construction and pass only the remaining seconds to the solver.
+    budget_seconds = body.max_time_minutes * 60 if body.max_time_minutes else None
+    setup_start = time.monotonic()
     try:
         solver = FashionSolver(
             slots=body.slots,
@@ -102,7 +107,18 @@ def run_optimization(
             max_copies=body.max_copies,
             order_full_collection=body.order_full_collection,
         )
-        status_code = solver.solve()
+
+        if budget_seconds is not None:
+            elapsed = time.monotonic() - setup_start
+            remaining = budget_seconds - elapsed
+            if remaining <= 0:
+                return OptimizeResponse(
+                    optimization_date=optimization_date.isoformat(),
+                    results=[],
+                )
+            solver.set_time_limit(remaining)
+
+        solver.solve()
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -110,6 +126,12 @@ def run_optimization(
         )
 
     if not solver.is_solved:
+        # Time limit reached without a solution → return empty schedule.
+        if budget_seconds is not None:
+            return OptimizeResponse(
+                optimization_date=optimization_date.isoformat(),
+                results=[],
+            )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Solver could not find a feasible solution. Try adjusting your schedule or settings.",

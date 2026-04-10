@@ -34,6 +34,7 @@ class FashionSolver:
         repeat_items: bool = False,
         max_copies: int | None = None,
         order_full_collection: bool = False,
+        time_limit_seconds: int | None = None,
     ):
         """Initialize the FashionSolver.
 
@@ -45,6 +46,8 @@ class FashionSolver:
             data: Optional DataFrame with product catalog. If None, loads from read_data().
             order_full_collection: If True, selecting any item from a collection forces
                 all other items in that collection to be scheduled at least once too.
+            time_limit_seconds: Wall-clock time limit for the solver. If the limit is
+                reached before a solution is found, solve() returns a non-optimal status.
 
         Raises:
             ValueError: If slots < 1, n_days_to_schedule < 1, or solver cannot be created.
@@ -293,6 +296,14 @@ class FashionSolver:
                     ct.SetCoefficient(var, 1)
                 for var in j_vars:
                     ct.SetCoefficient(var, -1)
+
+    def set_time_limit(self, seconds: float) -> None:
+        """Set or update the solver time limit before calling solve().
+
+        Args:
+            seconds: Maximum wall-clock time the solver may run.
+        """
+        self._solver.set_time_limit(max(1, int(seconds * 1000)))
 
     def solve(self) -> int:
         """Solve the optimization problem.
