@@ -100,6 +100,7 @@ def run_optimization(
             data=data,
             repeat_items=body.repeat_items,
             max_copies=body.max_copies,
+            order_full_collection=body.order_full_collection,
         )
         status_code = solver.solve()
     except Exception as exc:

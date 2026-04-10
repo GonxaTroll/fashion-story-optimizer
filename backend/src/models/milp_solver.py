@@ -33,16 +33,19 @@ class FashionSolver:
         data: pd.DataFrame = None,
         repeat_items: bool = False,
         max_copies: int | None = None,
+        order_full_collection: bool = False,
     ):
         """Initialize the FashionSolver.
-        
+
         Args:
             slots: Number of parallel time slots available (must be >= 1).
             n_days_to_schedule: Number of days in the scheduling horizon (must be >= 1).
             unavailable_times: List of hour indices that cannot be used for scheduling.
             solver_name: Name of the MILP solver backend (default: "SCIP").
             data: Optional DataFrame with product catalog. If None, loads from read_data().
-        
+            order_full_collection: If True, selecting any item from a collection forces
+                all other items in that collection to be scheduled at least once too.
+
         Raises:
             ValueError: If slots < 1, n_days_to_schedule < 1, or solver cannot be created.
         """
@@ -53,6 +56,7 @@ class FashionSolver:
         self._time_mapping = list(range(self.HOURS_PER_DAY * n_days_to_schedule))
         self._unavailable_times = unavailable_times if unavailable_times is not None else []
         self._repeat_items = repeat_items
+        self._order_full_collection = order_full_collection
         # max_copies=None means unlimited; if repeat_items=False, enforce at most 1 copy
         self._max_copies: int | None = max_copies if repeat_items else 1
 
@@ -66,6 +70,7 @@ class FashionSolver:
         # Related to solver
         self._solver = self._create_solver(solver_name)
         self._variables = {}
+        self._product_vars: dict[int, list] = {}  # product_id → list of BoolVars
         self._is_solved = False
 
         # Initialize problem
@@ -141,9 +146,11 @@ class FashionSolver:
                 # Create variable for each slot
                 for slot in range(1, self._slots + 1):
                     variable_id = self._create_variable_id(product_id, hour, slot)
-                    self._variables[variable_id] = self._solver.BoolVar(
+                    var = self._solver.BoolVar(
                         f"Product {product_id} at hour {hour} in slot {slot}"
                     )
+                    self._variables[variable_id] = var
+                    self._product_vars.setdefault(product_id, []).append(var)
     
     def _is_invalid_time_window(self, start_hour: int, finish_hour: int, last_hour: int) -> bool:
         """Check if a time window is invalid for scheduling.
@@ -243,6 +250,49 @@ class FashionSolver:
                 if len(occupying_vars) > 1:
                     self._solver.Add(sum(occupying_vars) <= 1)
 
+        # ── Constraint 3: full collection ordering ────────────────────────
+        if self._order_full_collection:
+            self._initialize_collection_constraints()
+
+    def _initialize_collection_constraints(self) -> None:
+        """Enforce that all items in a collection are scheduled together (or none at all).
+
+        Does NOT constrain which hour — only that the full collection appears in the
+        schedule. Uses a star topology with (n-1) equality constraints per collection.
+
+        For representative r and each spoke j, adds one equality constraint:
+            sum(r_vars) - sum(j_vars) = 0
+
+        SetCoefficient is used directly on the solver constraint to avoid building
+        Python LinearExpr chains over potentially thousands of variables.
+        """
+        # Build collection → [product_id, ...] map (skip items with no collection)
+        collection_groups: dict[str, list[int]] = {}
+        for product_id, info in self._data_records.items():
+            col = info.get("collection")
+            if not col or str(col).strip() in ("", "nan"):
+                continue
+            collection_groups.setdefault(str(col), []).append(product_id)
+
+        for product_ids in collection_groups.values():
+            if len(product_ids) < 2:
+                continue
+
+            r = next((p for p in product_ids if p in self._product_vars), None)
+            if r is None:
+                continue
+            r_vars = self._product_vars[r]
+
+            for j in product_ids:
+                if j == r or j not in self._product_vars:
+                    continue
+                j_vars = self._product_vars[j]
+                # sum(r_vars) = sum(j_vars)  →  both scheduled or neither
+                ct = self._solver.Constraint(0, 0)
+                for var in r_vars:
+                    ct.SetCoefficient(var, 1)
+                for var in j_vars:
+                    ct.SetCoefficient(var, -1)
 
     def solve(self) -> int:
         """Solve the optimization problem.

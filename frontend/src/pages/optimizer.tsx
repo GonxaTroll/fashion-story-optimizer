@@ -285,6 +285,7 @@ interface Props {
 export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
   /* Optimizer controls */
   const [orderFull, setOrderFull]     = useState(true)
+  const [sameHour, setSameHour]       = useState(false)
   const [repeatItems, setRepeatItems] = useState(false)
   const [maxCopies, setMaxCopies]     = useState<number | null>(null) // null = infinite
   const [itemSlots, setItemSlots]     = useState(24)
@@ -533,6 +534,34 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                     onChange={handleToggle(setOrderFull)}
                   />
                 </div>
+
+                {orderFull && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="mt-4 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs font-bold text-[#784e6c]">Same Hour</span>
+                      <span className="text-[10px] font-semibold text-[#b48aaa]">Order all items at the same time slot</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] font-black uppercase tracking-wide
+                                       bg-amber-100 text-amber-600 border border-amber-200
+                                       px-2 py-0.5 rounded-full">
+                        Coming soon
+                      </span>
+                      <BouncyToggle
+                        id="toggle-same-hour"
+                        label="Toggle same hour ordering"
+                        checked={sameHour}
+                        onChange={(v) => { if (v) setSameHour(false) }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
               </OptimizerCard>
 
               {/* Repeat Items */}
