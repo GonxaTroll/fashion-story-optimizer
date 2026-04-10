@@ -210,16 +210,13 @@ class FashionSolver:
     def _initialize_constraints(self) -> None:
         """Set up all optimization constraints.
 
-        1. Non-overlapping: for each slot, at most one product occupies any hour.
+        1. Non-overlapping: for each slot and each hour, at most one product
+           may be actively occupying that hour.
         2. Copy-count: each product appears at most _max_copies times across all
            hours and slots (skipped when _max_copies is None, i.e. unlimited).
         """
-        last_hour = max(self._time_mapping)
-
-        for product_id, product_info in self._data_records.items():
-            duration = int(np.ceil(product_info["duration"]))
-
-            # ── Constraint 2: max copies per product ──────────────────────────
+        # ── Constraint 2: max copies per product ──────────────────────────
+        for product_id in self._data_records:
             if self._max_copies is not None:
                 all_product_vars = [
                     self._variables[vid]
@@ -229,29 +226,22 @@ class FashionSolver:
                 if all_product_vars:
                     self._solver.Add(sum(all_product_vars) <= self._max_copies)
 
-            # ── Constraint 1: no-overlap per slot ────────────────────────────
-            for start_hour in self._time_mapping:
-                base_variable_id = self._create_variable_id(product_id, start_hour, 1)
-
-                if base_variable_id not in self._variables:
-                    continue
-
-                finish_hour = min(start_hour + duration - 1, last_hour)
-                conflicting_variable_ids = []
-
-                for other_product_id in self._data_records:
-                    for hour in range(start_hour, finish_hour + 1):
-                        variable_id = self._create_variable_id(other_product_id, hour, 1)
-                        if variable_id in self._variables:
-                            conflicting_variable_ids.append((other_product_id, hour))
-
-                for slot in range(1, self._slots + 1):
-                    slot_variables = [
-                        self._variables[self._create_variable_id(pid, h, slot)]
-                        for pid, h in conflicting_variable_ids
-                    ]
-                    if slot_variables:
-                        self._solver.Add(sum(slot_variables) <= 1)
+        # ── Constraint 1: no-overlap per slot (per-hour coverage) ─────────
+        # For each hour H and slot S, at most one item may be occupying H.
+        # An item starting at start_hour with duration D occupies hour H if:
+        #   start_hour <= H <= start_hour + D - 1
+        #   i.e., start_hour in [H - D + 1, H]
+        for hour in self._time_mapping:
+            for slot in range(1, self._slots + 1):
+                occupying_vars = []
+                for product_id, product_info in self._data_records.items():
+                    duration = int(np.ceil(product_info["duration"]))
+                    for start_hour in range(max(0, hour - duration + 1), hour + 1):
+                        var_id = self._create_variable_id(product_id, start_hour, slot)
+                        if var_id in self._variables:
+                            occupying_vars.append(self._variables[var_id])
+                if len(occupying_vars) > 1:
+                    self._solver.Add(sum(occupying_vars) <= 1)
 
 
     def solve(self) -> int:

@@ -32,6 +32,7 @@ interface Item {
   orderPosition: number | null
   hours: number[]
   count: number
+  hourCounts: Record<number, number>
   item: string
   price: number
   experience: number
@@ -86,14 +87,15 @@ function toCollections(results: ApiResultItem[]): Collection[] {
 
   for (const [name, apiItems] of collectionMap) {
     // Deduplicate by title within collection
-    const titleMap = new Map<string, ApiResultItem & { hours: number[]; totalCount: number }>()
+    const titleMap = new Map<string, ApiResultItem & { hours: number[]; totalCount: number; hourCounts: Record<number, number> }>()
     apiItems.forEach((r) => {
       if (!titleMap.has(r.title)) {
-        titleMap.set(r.title, { ...r, hours: [r.hour], totalCount: 1 })
+        titleMap.set(r.title, { ...r, hours: [r.hour], totalCount: 1, hourCounts: { [r.hour]: 1 } })
       } else {
         const entry = titleMap.get(r.title)!
         entry.totalCount++
         if (!entry.hours.includes(r.hour)) entry.hours.push(r.hour)
+        entry.hourCounts[r.hour] = (entry.hourCounts[r.hour] ?? 0) + 1
       }
     })
 
@@ -108,6 +110,7 @@ function toCollections(results: ApiResultItem[]): Collection[] {
           orderPosition: r.order_position,
           hours: r.hours,
           count: r.totalCount,
+          hourCounts: r.hourCounts,
           item: r.title,
           price: r.cost,
           experience: r.xp,
@@ -137,8 +140,9 @@ function formatDate(iso: string): string {
 }
 
 /* ─── Timeline Item Card (compact) ─── */
-function TimelineCard({ item, delay, shouldReduce }: {
+function TimelineCard({ item, hourCount, delay, shouldReduce }: {
   item: Item & { collection: string; collectionColor: string }
+  hourCount: number
   delay: number
   shouldReduce: boolean
 }) {
@@ -175,9 +179,9 @@ function TimelineCard({ item, delay, shouldReduce }: {
           <span className={`text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 ${item.tagColor}`}>
             {item.item.split(' ').slice(-1)[0]}
           </span>
-          {item.count > 1 && (
+          {hourCount > 1 && (
             <span className="text-[9px] font-black bg-[#9720ab] text-white px-1.5 py-0.5 rounded-full shrink-0">
-              x{item.count}
+              x{hourCount}
             </span>
           )}
         </div>
@@ -543,7 +547,7 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                     {/* Vertical line */}
                     <div className="absolute left-[3.25rem] top-0 bottom-0 w-px bg-[#d09ec0]/40" aria-hidden="true" />
 
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col">
                       {Array.from(hourMap.entries()).map(([hour, hourEntries], hi) => (
                         <motion.div
                           key={hour}
@@ -551,7 +555,9 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                           whileInView={{ opacity: 1, y: 0 }}
                           viewport={{ once: true, margin: '-24px' }}
                           transition={{ delay: hi * 0.05, duration: 0.25 }}
-                          className="flex items-center gap-3"
+                          className="flex items-start gap-3 py-2.5
+                                     border-b border-dashed border-[#d09ec0]/40
+                                     last:border-b-0 last:pb-0 first:pt-0"
                         >
                           {/* Time bubble */}
                           <div className="shrink-0 flex flex-col items-center w-14">
@@ -576,6 +582,7 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                                    className="flex-1 min-w-[200px] max-w-xs">
                                 <TimelineCard
                                   item={entry.item}
+                                  hourCount={entry.item.hourCounts[entry.flatHour] ?? 1}
                                   delay={ci * 0.04}
                                   shouldReduce={shouldReduce}
                                 />
