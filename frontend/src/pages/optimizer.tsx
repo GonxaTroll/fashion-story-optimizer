@@ -284,10 +284,11 @@ interface Props {
 
 export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
   /* Optimizer controls */
-  const [orderFull, setOrderFull]   = useState(true)
+  const [orderFull, setOrderFull]     = useState(true)
   const [repeatItems, setRepeatItems] = useState(false)
-  const [itemSlots, setItemSlots]   = useState(24)
-  const [goals, setGoals]           = useState<Goal[]>(['Revenue'])
+  const [maxCopies, setMaxCopies]     = useState<number | null>(null) // null = infinite
+  const [itemSlots, setItemSlots]     = useState(24)
+  const [goals, setGoals]             = useState<Goal[]>(['Revenue'])
 
   /* ── Optimization progress overlay ── */
   const STEPS = [
@@ -332,6 +333,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
         body: JSON.stringify({
           order_full_collection: orderFull,
           repeat_items: repeatItems,
+          max_copies: repeatItems ? maxCopies : null,
           slots: itemSlots,
           optimization_goal: goals.map((g) => g.toLowerCase()),
         }),
@@ -549,9 +551,97 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                     id="toggle-repeat"
                     label="Toggle repeat items"
                     checked={repeatItems}
-                    onChange={handleToggle(setRepeatItems)}
+                    onChange={(v) => {
+                      setRepeatItems(v)
+                      if (!v) setMaxCopies(null)
+                    }}
                   />
                 </div>
+
+                {/* Max copies inline counter — only when repeat is on */}
+                {repeatItems && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="mt-4 flex items-center justify-between gap-3"
+                  >
+                    <span className="text-xs font-bold text-[#784e6c] shrink-0">Max copies</span>
+                    <div className="flex items-center gap-2">
+                      {/* Decrease / remove limit */}
+                      <motion.button
+                        type="button"
+                        onClick={() => setMaxCopies((c) => c === null ? null : Math.max(1, c - 1))}
+                        whileHover={{ scale: 1.12 }}
+                        whileTap={{ scale: 0.88 }}
+                        transition={SPRING}
+                        disabled={maxCopies === null}
+                        className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
+                                   flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                                   transition-colors duration-150 cursor-pointer focus:outline-none
+                                   focus:ring-2 focus:ring-[#B02E7A]/40 disabled:opacity-30 disabled:cursor-default shrink-0"
+                      >
+                        −
+                      </motion.button>
+
+                      {/* Input or ∞ display */}
+                      <div className="w-16 h-8 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner">
+                        {maxCopies === null ? (
+                          <span className="font-black text-lg text-[#B02E7A]"
+                                style={{ fontFamily: 'var(--font-headline)' }}>∞</span>
+                        ) : (
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={maxCopies}
+                            onChange={(e) => {
+                              const n = parseInt(e.target.value.replace(/\D/g, ''), 10)
+                              if (!isNaN(n) && n >= 1) setMaxCopies(n)
+                            }}
+                            onFocus={(e) => e.target.select()}
+                            aria-label="Max copies"
+                            className="w-full text-center bg-transparent font-black text-base text-[#46223e]
+                                       focus:outline-none caret-[#B02E7A] select-all"
+                            style={{ fontFamily: 'var(--font-headline)' }}
+                          />
+                        )}
+                      </div>
+
+                      <motion.button
+                        type="button"
+                        onClick={() => setMaxCopies((c) => c === null ? 2 : c + 1)}
+                        whileHover={{ scale: 1.12 }}
+                        whileTap={{ scale: 0.88 }}
+                        transition={SPRING}
+                        className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
+                                   flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                                   transition-colors duration-150 cursor-pointer focus:outline-none
+                                   focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
+                      >
+                        +
+                      </motion.button>
+
+                      {/* Reset to ∞ */}
+                      {maxCopies !== null && (
+                        <motion.button
+                          type="button"
+                          onClick={() => setMaxCopies(null)}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          transition={SPRING}
+                          title="Set to unlimited"
+                          className="text-[10px] font-black text-[#00675f] bg-[#edfff9]
+                                     px-2 py-1 rounded-full hover:bg-[#56f1e0]/30
+                                     transition-colors duration-150 cursor-pointer shrink-0"
+                        >
+                          ∞
+                        </motion.button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
               </OptimizerCard>
             </div>
           </div>

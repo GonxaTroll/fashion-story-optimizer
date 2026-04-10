@@ -91,6 +91,8 @@ def run_optimization(
             n_days_to_schedule=N_DAYS,
             unavailable_times=unavailable,
             data=data,
+            repeat_items=body.repeat_items,
+            max_copies=body.max_copies,
         )
         status_code = solver.solve()
     except Exception as exc:

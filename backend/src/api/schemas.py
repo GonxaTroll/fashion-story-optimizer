@@ -42,6 +42,7 @@ class ScheduleResponse(BaseModel):
 class OptimizeRequest(BaseModel):
     order_full_collection: bool
     repeat_items: bool
+    max_copies: int | None = Field(default=None, ge=1)  # None = infinite
     slots: int = Field(ge=1)
     optimization_goal: list[str] = Field(min_length=1)
 

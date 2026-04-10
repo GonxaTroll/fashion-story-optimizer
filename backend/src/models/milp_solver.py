@@ -25,12 +25,14 @@ class FashionSolver:
     MIN_DAYS = 1
     
     def __init__(
-        self, 
-        slots: int = 1, 
-        n_days_to_schedule: int = 1, 
+        self,
+        slots: int = 1,
+        n_days_to_schedule: int = 1,
         unavailable_times: list = None,
         solver_name: str = DEFAULT_SOLVER,
-        data: pd.DataFrame = None
+        data: pd.DataFrame = None,
+        repeat_items: bool = False,
+        max_copies: int | None = None,
     ):
         """Initialize the FashionSolver.
         
@@ -45,11 +47,14 @@ class FashionSolver:
             ValueError: If slots < 1, n_days_to_schedule < 1, or solver cannot be created.
         """
         self._validate_inputs(slots, n_days_to_schedule)
-        
+
         self._slots = slots
         self._n_days = n_days_to_schedule
         self._time_mapping = list(range(self.HOURS_PER_DAY * n_days_to_schedule))
         self._unavailable_times = unavailable_times if unavailable_times is not None else []
+        self._repeat_items = repeat_items
+        # max_copies=None means unlimited; if repeat_items=False, enforce at most 1 copy
+        self._max_copies: int | None = max_copies if repeat_items else 1
 
         # Data
         self._data = data if data is not None else read_data()
@@ -62,7 +67,7 @@ class FashionSolver:
         self._solver = self._create_solver(solver_name)
         self._variables = {}
         self._is_solved = False
-        
+
         # Initialize problem
         self._initialize_variables()
         self._initialize_problem()
@@ -204,36 +209,42 @@ class FashionSolver:
 
     def _initialize_constraints(self) -> None:
         """Set up all optimization constraints.
-        
-        Creates non-overlapping constraints: ensures that for each slot,
-        at most one product occupies any given hour. Each constraint ensures
-        that products with overlapping time windows cannot be scheduled simultaneously.
+
+        1. Non-overlapping: for each slot, at most one product occupies any hour.
+        2. Copy-count: each product appears at most _max_copies times across all
+           hours and slots (skipped when _max_copies is None, i.e. unlimited).
         """
         last_hour = max(self._time_mapping)
-        
+
         for product_id, product_info in self._data_records.items():
             duration = int(np.ceil(product_info["duration"]))
-            
+
+            # ── Constraint 2: max copies per product ──────────────────────────
+            if self._max_copies is not None:
+                all_product_vars = [
+                    self._variables[vid]
+                    for vid in self._variables
+                    if self._parse_variable_id(vid)[0] == product_id
+                ]
+                if all_product_vars:
+                    self._solver.Add(sum(all_product_vars) <= self._max_copies)
+
+            # ── Constraint 1: no-overlap per slot ────────────────────────────
             for start_hour in self._time_mapping:
                 base_variable_id = self._create_variable_id(product_id, start_hour, 1)
-                
-                # Skip if this product can't start at this hour in any slot
+
                 if base_variable_id not in self._variables:
                     continue
-                
-                # Get all variables that would conflict in the time window
+
                 finish_hour = min(start_hour + duration - 1, last_hour)
                 conflicting_variable_ids = []
-                
+
                 for other_product_id in self._data_records:
                     for hour in range(start_hour, finish_hour + 1):
                         variable_id = self._create_variable_id(other_product_id, hour, 1)
                         if variable_id in self._variables:
-                            conflicting_variable_ids.append(
-                                (other_product_id, hour)
-                            )
-                
-                # Add constraint for each slot independently
+                            conflicting_variable_ids.append((other_product_id, hour))
+
                 for slot in range(1, self._slots + 1):
                     slot_variables = [
                         self._variables[self._create_variable_id(pid, h, slot)]
