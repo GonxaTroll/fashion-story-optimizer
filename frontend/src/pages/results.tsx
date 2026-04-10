@@ -37,6 +37,7 @@ interface Item {
   experience: number
   units: number
   revenue: number
+  duration: number
   tagColor: string
   icon: React.ElementType
   iconBg: string
@@ -112,6 +113,7 @@ function toCollections(results: ApiResultItem[]): Collection[] {
           experience: r.xp,
           units: r.units,
           revenue: r.revenue,
+          duration: r.duration,
           tagColor: p.tagColor,
           icon: p.icon,
           iconBg: p.iconBg,
@@ -134,81 +136,72 @@ function formatDate(iso: string): string {
   }
 }
 
-/* ─── Timeline Item Card ─── */
-function TimelineCard({ item, collectionColor, delay, shouldReduce }: {
+/* ─── Timeline Item Card (compact) ─── */
+function TimelineCard({ item, delay, shouldReduce }: {
   item: Item & { collection: string; collectionColor: string }
-  collectionColor: string
   delay: number
   shouldReduce: boolean
 }) {
   const Icon = item.icon
   return (
     <motion.div
-      initial={{ opacity: 0, x: 16 }}
+      initial={{ opacity: 0, x: 10 }}
       whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ delay, duration: 0.32 }}
-      whileHover={shouldReduce ? {} : { scale: 1.015 }}
+      viewport={{ once: true, margin: '-24px' }}
+      transition={{ delay, duration: 0.25 }}
+      whileHover={shouldReduce ? {} : { scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
-      className="bg-white rounded-2xl p-4 flex gap-4 flex-1
-                 shadow-[0_4px_16px_rgba(176,46,122,0.07)]
-                 hover:shadow-[0_12px_32px_rgba(176,46,122,0.15)]
+      className="bg-white rounded-xl px-3 py-2 flex items-center gap-2.5 min-w-0
+                 shadow-[0_2px_8px_rgba(176,46,122,0.07)]
+                 hover:shadow-[0_6px_20px_rgba(176,46,122,0.13)]
                  transition-shadow duration-200 cursor-default"
     >
-      {/* Icon + badges */}
+      {/* Icon + position badge */}
       <div className="relative shrink-0">
-        <div className={`w-14 h-14 ${item.iconBg} rounded-xl flex items-center justify-center`}>
-          <Icon className="w-7 h-7 text-[#B02E7A]" aria-hidden="true" />
+        <div className={`w-8 h-8 ${item.iconBg} rounded-lg flex items-center justify-center`}>
+          <Icon className="w-4 h-4 text-[#B02E7A]" aria-hidden="true" />
         </div>
         {item.orderPosition != null && (
-          <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bubblegum-gradient
-                           text-white text-[9px] font-black flex items-center justify-center shadow-sm">
+          <span className="absolute -top-1 -left-1 w-4 h-4 rounded-full bubblegum-gradient
+                           text-white text-[8px] font-black flex items-center justify-center shadow-sm">
             {item.orderPosition}
-          </span>
-        )}
-        {item.count > 1 && (
-          <span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] h-5 rounded-full
-                           bg-[#9720ab] text-white text-[9px] font-black
-                           flex items-center justify-center shadow-sm px-1">
-            x{item.count}
           </span>
         )}
       </div>
 
       {/* Info */}
-      <div className="flex flex-col justify-between overflow-hidden flex-1 min-w-0">
-        <div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${item.tagColor}`}>
-              {item.item.split(' ').slice(-1)[0]}
+      <div className="flex flex-col min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className={`text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 ${item.tagColor}`}>
+            {item.item.split(' ').slice(-1)[0]}
+          </span>
+          {item.count > 1 && (
+            <span className="text-[9px] font-black bg-[#9720ab] text-white px-1.5 py-0.5 rounded-full shrink-0">
+              x{item.count}
             </span>
-            <span className={`text-[10px] font-black ${collectionColor}`}
-                  style={{ fontFamily: 'var(--font-headline)' }}>
-              {item.collection}
-            </span>
-          </div>
-          <h3 className="font-black text-sm text-[#46223e] mt-1 truncate"
-              style={{ fontFamily: 'var(--font-headline)' }}>
-            {item.item}
-          </h3>
+          )}
         </div>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-1">
-          <div className="flex items-center gap-1 text-[11px] font-bold text-[#9720ab]">
-            <Gem className="w-3 h-3" aria-hidden="true" />
-            {item.price.toLocaleString()} coins
-          </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-[#B02E7A]">
-            <Star className="w-3 h-3" aria-hidden="true" />
-            {item.experience.toLocaleString()} XP
-          </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-[#784e6c]">
-            <LayoutGrid className="w-3 h-3" aria-hidden="true" />
-            {item.units} units
-          </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-[#00675f]">
-            <DollarSign className="w-3 h-3" aria-hidden="true" />
-            {item.revenue.toLocaleString()} rev
-          </div>
+        <p className="font-black text-xs text-[#46223e] truncate leading-tight mt-0.5"
+           style={{ fontFamily: 'var(--font-headline)' }}>
+          {item.item}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#9720ab]">
+            <Gem className="w-2.5 h-2.5" aria-hidden="true" />
+            {item.price.toLocaleString()}
+          </span>
+          <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#B02E7A]">
+            <Star className="w-2.5 h-2.5" aria-hidden="true" />
+            {item.experience.toLocaleString()}
+          </span>
+          <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#00675f]">
+            <DollarSign className="w-2.5 h-2.5" aria-hidden="true" />
+            {item.revenue.toLocaleString()}
+          </span>
+          <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#966988]">
+            <Clock className="w-2.5 h-2.5" aria-hidden="true" />
+            {item.duration}h
+          </span>
         </div>
       </div>
     </motion.div>
@@ -247,18 +240,16 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
   const totalRevenue = allItems.reduce((s, i) => s + i.revenue * i.count, 0)
   const totalItems   = allItems.reduce((s, i) => s + i.count, 0)
 
-  // Compute Monday of the week the optimization ran (day 0 = Mon 00:00)
-  function weekMonday(): Date {
+  // Day 0 = the date optimization was run (horizon starts that day)
+  function horizonBase(): Date {
     const base = optimizedAt ? new Date(optimizedAt) : new Date()
     base.setHours(0, 0, 0, 0)
-    const dow = base.getDay() // 0=Sun, 1=Mon, …6=Sat
-    base.setDate(base.getDate() + (dow === 0 ? -6 : 1 - dow))
     return base
   }
 
-  // Format a flat hour (0-167) as an actual calendar time (Mon of opt week = hour 0)
+  // Format a flat hour (0-167) as an actual calendar time (opt date = hour 0)
   function formatFlatHour(flatHour: number): string {
-    const base = weekMonday()
+    const base = horizonBase()
     const d = new Date(base)
     d.setDate(d.getDate() + Math.floor(flatHour / 24))
     const hour = flatHour % 24
@@ -486,8 +477,8 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
 
         {/* ── VISUAL VIEW — Timeline ── */}
         {!loading && allItems.length > 0 && view === 'visual' && (() => {
-          // Day 0 = Monday of the optimization week (matches solver's day_of_week=0 convention)
-          const baseDate = weekMonday()
+          // Day 0 = optimization date (horizon starts the day optimization was run)
+          const baseDate = horizonBase()
 
           function actualDate(dayIdx: number): Date {
             const d = new Date(baseDate)
@@ -512,12 +503,15 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
           })
           entries.sort((a, b) => a.flatHour - b.flatHour)
 
-          // Group by day index
-          const byDay = new Map<number, typeof entries>()
+          // Group by day, then by hour within each day
+          const byDay = new Map<number, Map<number, typeof entries>>()
           entries.forEach((e) => {
-            const day = Math.floor(e.flatHour / 24)
-            if (!byDay.has(day)) byDay.set(day, [])
-            byDay.get(day)!.push(e)
+            const day  = Math.floor(e.flatHour / 24)
+            const hour = e.flatHour % 24
+            if (!byDay.has(day)) byDay.set(day, new Map())
+            const hourMap = byDay.get(day)!
+            if (!hourMap.has(hour)) hourMap.set(hour, [])
+            hourMap.get(hour)!.push(e)
           })
 
           return (
@@ -526,70 +520,74 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
-              className="flex flex-col gap-10 mb-16"
+              className="flex flex-col gap-8 mb-16"
             >
-              {Array.from(byDay.entries()).map(([day, dayEntries]) => (
+              {Array.from(byDay.entries()).map(([day, hourMap]) => {
+                const totalItems = Array.from(hourMap.values()).reduce((s, g) => s + g.length, 0)
+                return (
                 <div key={day}>
                   {/* Day header */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-xl font-black text-[#B02E7A]"
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-base font-black text-[#B02E7A]"
                           style={{ fontFamily: 'var(--font-headline)' }}>
                       {dayHeader(day)}
                     </span>
                     <div className="flex-1 h-px bg-[#d09ec0]/30" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[#966988]">
-                      {dayEntries.length} {dayEntries.length === 1 ? 'item' : 'items'}
+                      {totalItems} {totalItems === 1 ? 'item' : 'items'}
                     </span>
                   </div>
 
-                  {/* Timeline entries */}
+                  {/* Timeline entries — one row per hour */}
                   <div className="relative pl-2">
                     {/* Vertical line */}
-                    <div className="absolute left-[2.35rem] top-0 bottom-0 w-px bg-[#d09ec0]/40" aria-hidden="true" />
+                    <div className="absolute left-[3.25rem] top-0 bottom-0 w-px bg-[#d09ec0]/40" aria-hidden="true" />
 
-                    <div className="flex flex-col gap-4">
-                      {dayEntries.map((entry, ei) => {
-                        const hour = entry.flatHour % 24
-                        return (
-                          <motion.div
-                            key={`${entry.flatHour}-${entry.item.item}`}
-                            initial={{ opacity: 0, y: 12 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, margin: '-32px' }}
-                            transition={{ delay: ei * 0.06, duration: 0.32 }}
-                            className="flex items-start gap-4"
-                          >
-                            {/* Time bubble */}
-                            <div className="shrink-0 flex flex-col items-center w-[4.5rem]">
-                              <div className="w-[4.5rem] bg-[#ffd7f0] rounded-xl px-1 py-1.5
-                                              flex flex-col items-center shadow-sm
-                                              border border-[#d09ec0]/20">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-[#966988]">
-                                  {dayShort(day)}
-                                </span>
-                                <span className="text-base font-black text-[#B02E7A] leading-none"
-                                      style={{ fontFamily: 'var(--font-headline)' }}>
-                                  {String(hour).padStart(2, '0')}:00
-                                </span>
-                              </div>
-                              {/* Connector dot */}
-                              <div className="w-2.5 h-2.5 rounded-full bubblegum-gradient mt-1 shadow-sm" />
+                    <div className="flex flex-col gap-2.5">
+                      {Array.from(hourMap.entries()).map(([hour, hourEntries], hi) => (
+                        <motion.div
+                          key={hour}
+                          initial={{ opacity: 0, y: 8 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true, margin: '-24px' }}
+                          transition={{ delay: hi * 0.05, duration: 0.25 }}
+                          className="flex items-center gap-3"
+                        >
+                          {/* Time bubble */}
+                          <div className="shrink-0 flex flex-col items-center w-14">
+                            <div className="w-14 bg-[#ffd7f0] rounded-lg px-1 py-1
+                                            flex flex-col items-center shadow-sm
+                                            border border-[#d09ec0]/20">
+                              <span className="text-[9px] font-black uppercase tracking-wide text-[#966988]">
+                                {dayShort(day)}
+                              </span>
+                              <span className="text-sm font-black text-[#B02E7A] leading-none"
+                                    style={{ fontFamily: 'var(--font-headline)' }}>
+                                {String(hour).padStart(2, '0')}:00
+                              </span>
                             </div>
+                            <div className="w-2 h-2 rounded-full bubblegum-gradient mt-1 shadow-sm" />
+                          </div>
 
-                            {/* Card */}
-                            <TimelineCard
-                              item={entry.item}
-                              collectionColor={entry.item.collectionColor}
-                              delay={0}
-                              shouldReduce={shouldReduce}
-                            />
-                          </motion.div>
-                        )
-                      })}
+                          {/* Cards for this hour — wrap if many */}
+                          <div className="flex flex-wrap gap-2 flex-1 min-w-0">
+                            {hourEntries.map((entry, ci) => (
+                              <div key={`${entry.flatHour}-${entry.item.item}`}
+                                   className="flex-1 min-w-[200px] max-w-xs">
+                                <TimelineCard
+                                  item={entry.item}
+                                  delay={ci * 0.04}
+                                  shouldReduce={shouldReduce}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </motion.div>
           )
         })()}
@@ -609,10 +607,10 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-[#ffd7f0] border-b border-[#d09ec0]/20">
-                    {['Pos', 'Scheduled', 'Collection', 'Item', 'Price (coins)', 'XP', 'Units', 'Revenue'].map((label) => (
+                    {['Pos', 'Scheduled', 'Collection', 'Item', 'Duration', 'Price (coins)', 'XP', 'Units', 'Revenue'].map((label) => (
                       <th key={label}
                           className={`px-5 py-4 text-xs font-black uppercase tracking-wider text-[#784e6c]
-                                     ${['Price (coins)', 'XP', 'Units', 'Revenue'].includes(label) ? 'text-right' : ''}`}>
+                                     ${['Duration', 'Price (coins)', 'XP', 'Units', 'Revenue'].includes(label) ? 'text-right' : ''}`}>
                         {label}
                       </th>
                     ))}
@@ -659,6 +657,12 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                         )}
                       </td>
                       <td className="px-5 py-4 text-right">
+                        <span className="inline-flex items-center gap-1 font-bold text-[#966988] text-sm">
+                          <Clock className="w-3 h-3" aria-hidden="true" />
+                          {row.duration}h
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-right">
                         <span className="inline-flex items-center gap-1 font-bold text-[#9720ab] text-sm">
                           <Gem className="w-3 h-3" aria-hidden="true" />
                           {(row.price * row.count).toLocaleString()}
@@ -688,6 +692,7 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                         className="px-5 py-3 text-xs font-black uppercase tracking-wider text-[#784e6c]">
                       Totals
                     </td>
+                    <td className="px-5 py-3 text-right text-xs font-black text-[#966988]">—</td>
                     <td className="px-5 py-3 text-right text-xs font-black text-[#9720ab]">—</td>
                     <td className="px-5 py-3 text-right text-xs font-black text-[#B02E7A]">
                       +{totalXP.toLocaleString()}

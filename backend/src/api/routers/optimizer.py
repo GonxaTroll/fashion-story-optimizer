@@ -28,18 +28,24 @@ _GOAL_COLUMN: dict[str, str] = {
 }
 
 
-def _build_unavailable_times(conn: duckdb.DuckDBPyConnection, user_id: str) -> list[int]:
-    """Return flat hour indices (0-167) that are NOT in the user's schedule."""
+def _build_unavailable_times(
+    conn: duckdb.DuckDBPyConnection, user_id: str, start_dow: int = 0
+) -> list[int]:
+    """Return flat hour indices (0-167) that are NOT in the user's schedule.
+
+    start_dow: day-of-week of horizon day 0 (0=Mon … 6=Sun, matches Python weekday()).
+    Horizon day `d` maps to day_of_week `(start_dow + d) % 7`.
+    """
     rows = conn.execute(
         "SELECT day_of_week, hour FROM user_schedule WHERE user_id = ?",
         [user_id],
     ).fetchall()
-    available = {(day, hour) for day, hour in rows}
+    available = {(dow, hour) for dow, hour in rows}
     return [
         day * 24 + hour
         for day in range(N_DAYS)
         for hour in range(24)
-        if (day, hour) not in available
+        if ((start_dow + day) % 7, hour) not in available
     ]
 
 
@@ -78,7 +84,8 @@ def run_optimization(
     )
 
     # 2 — Build unavailable times from the user's weekly schedule
-    unavailable = _build_unavailable_times(conn, user_id)
+    # weekday() returns 0=Mon … 6=Sun, matching day_of_week in user_schedule
+    unavailable = _build_unavailable_times(conn, user_id, start_dow=optimization_date.weekday())
 
     # 3 — Load data with the correct goal metric
     primary_goal = body.optimization_goal[0] if body.optimization_goal else "revenue"
