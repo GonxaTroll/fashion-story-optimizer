@@ -162,7 +162,7 @@ def get_latest_results(
         SELECT hour, item_id, slot
         FROM optimization_results
         WHERE user_id = ? AND optimization_date = ?
-        ORDER BY slot, hour
+        ORDER BY hour
         """,
         [user_id, latest_date],
     ).fetchall()

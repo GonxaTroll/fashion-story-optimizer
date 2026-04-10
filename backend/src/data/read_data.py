@@ -12,6 +12,9 @@ def read_data() -> pd.DataFrame:
     data.columns = data.columns.str.lower()
     data = data.rename(columns = {"total revenue (coins)": "revenue", "time (hrs)": "duration",
                                   "price (coins)": "cost", "experience (xp)": "xp"})
+    # Clean dirty string values from the CSV
+    data["xp"] = data["xp"].astype(str).str.replace(r"[^\d]", "", regex=True).astype(int)
+    data["units"] = data["units"].astype(str).str.replace(r"[^\d]", "", regex=True).astype(int)
     data["benefit"] = data["revenue"] - data["cost"]
     data = data[data["duration"] >= 1] # Only products with at least 1 hour duration are relevant
     data["id"] = list(range(len(data)))

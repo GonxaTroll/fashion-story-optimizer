@@ -34,9 +34,16 @@ def init_db() -> None:
                 optimization_date TIMESTAMP NOT NULL,
                 user_id           VARCHAR    NOT NULL,
                 hour              INTEGER    NOT NULL,
-                item_id           INTEGER    NOT NULL
+                item_id           INTEGER    NOT NULL,
+                slot              INTEGER    NOT NULL DEFAULT 1
             )
         """)
+        # Migrate existing DBs that lack the slot column
+        existing = {row[0] for row in conn.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'optimization_results'"
+        ).fetchall()}
+        if "slot" not in existing:
+            conn.execute("ALTER TABLE optimization_results ADD COLUMN slot INTEGER DEFAULT 1")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_schedule (
                 user_id     VARCHAR NOT NULL,
