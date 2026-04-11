@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - db_data:/app/data  # named volume avoids macOS VirtioFS mmap issues with DuckDB
+    env_file:
+      - path: ./backend/.env
+        required: false
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

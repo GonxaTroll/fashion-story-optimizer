@@ -1,10 +1,11 @@
 """database.py
 DuckDB database management for the fashion story optimizer.
 """
+import os
 import duckdb
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent.parent / "data" / "optimizer.duckdb"
+DB_PATH = Path(os.getenv("DATABASE_PATH", "./data/optimizer.duckdb"))
 
 
 def get_connection() -> duckdb.DuckDBPyConnection:
