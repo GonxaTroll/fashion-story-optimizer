@@ -828,42 +828,6 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
               </motion.div>
             </div>
 
-            <div className="mt-5 flex items-center justify-center gap-3">
-              <p className="text-sm text-[#784e6c] italic font-medium">
-                Estimated improvement:{' '}
-                <span className="text-[#00675f] font-black not-italic">+18% Efficiency</span>
-              </p>
-            </div>
-          </motion.div>
-
-          {/* ── VISUAL ANCHOR: Boutique preview cards ── */}
-          <motion.div
-            initial={shouldReduce ? false : { opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ ...SPRING, delay: 0.1 }}
-          >
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#966988] mb-3 ml-1"
-               style={{ fontFamily: 'var(--font-headline)' }}>
-              Your Boutique
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <BoutiquePreviewCard
-                gradient="linear-gradient(135deg, #ffdff2 0%, #fcbcff 50%, #B02E7A 100%)"
-                icon={Layers}
-                label="Racks"
-              />
-              <BoutiquePreviewCard
-                gradient="linear-gradient(135deg, #ffd7f0 0%, #ff6cb5 50%, #9720ab 100%)"
-                icon={Star}
-                label="Displays"
-              />
-              <BoutiquePreviewCard
-                gradient="linear-gradient(135deg, #edfff9 0%, #56f1e0 50%, #00675f 100%)"
-                icon={Gem}
-                label="Accessories"
-              />
-            </div>
           </motion.div>
 
         </div>

@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
   Star, Gem, DollarSign, LayoutGrid, List, Lightbulb,
-  Shield, Glasses, Zap, CircleDot, Headphones, User, Clock, Download,
+  Shield, Glasses, Zap, CircleDot, Headphones, User, Clock, Download, Coins,
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -227,17 +227,17 @@ function TimelineCard({ item, hourCount, delay, shouldReduce }: {
           {item.item}
         </p>
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#9720ab]">
-            <Gem className="w-2.5 h-2.5" aria-hidden="true" />
+          <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#784e6c]">
+            <Coins className="w-2.5 h-2.5" aria-hidden="true" />
             {item.price.toLocaleString()}
+          </span>
+          <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#00675f]">
+            <Coins className="w-2.5 h-2.5" aria-hidden="true" />
+            {item.revenue.toLocaleString()}
           </span>
           <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#B02E7A]">
             <Star className="w-2.5 h-2.5" aria-hidden="true" />
             {item.experience.toLocaleString()}
-          </span>
-          <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#00675f]">
-            <DollarSign className="w-2.5 h-2.5" aria-hidden="true" />
-            {item.revenue.toLocaleString()}
           </span>
           <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#966988]">
             <Clock className="w-2.5 h-2.5" aria-hidden="true" />
@@ -281,6 +281,7 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
 
   const totalXP      = allItems.reduce((s, i) => s + i.experience * i.count, 0)
   const totalRevenue = allItems.reduce((s, i) => s + i.revenue * i.count, 0)
+  const totalCost    = allItems.reduce((s, i) => s + i.price * i.count, 0)
   const totalItems   = allItems.reduce((s, i) => s + i.count, 0)
 
   // Day 0 = the date optimization was run (horizon starts that day)
@@ -301,9 +302,10 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
   }
 
   const summaryChips = [
-    { label: 'Total XP',      value: `+${totalXP.toLocaleString()}`,      icon: Star,       color: 'text-[#B02E7A]' },
-    { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} G`, icon: DollarSign, color: 'text-[#00675f]' },
-    { label: 'Items Scheduled', value: totalItems.toLocaleString(),        icon: Gem,        color: 'text-[#9720ab]' },
+    { label: 'Total XP',        value: `+${totalXP.toLocaleString()}`,      icon: Star,       color: 'text-[#B02E7A]' },
+    { label: 'Total Cost',      value: totalCost.toLocaleString(),           icon: Coins,      color: 'text-[#784e6c]' },
+    { label: 'Total Revenue',   value: `${totalRevenue.toLocaleString()} G`, icon: Coins,      color: 'text-[#00675f]' },
+    { label: 'Items Scheduled', value: totalItems.toLocaleString(),          icon: Gem,        color: 'text-[#9720ab]' },
   ]
 
   const navLinks       = ['Home', 'Schedule', 'Optimizer', 'Results']
@@ -669,10 +671,10 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-[#ffd7f0] border-b border-[#d09ec0]/20">
-                    {['Pos', 'Scheduled', 'Collection', 'Item', 'Duration', 'Price (coins)', 'XP', 'Units', 'Revenue'].map((label) => (
+                    {['Pos', 'Scheduled', 'Collection', 'Item', 'Duration', 'Cost', 'Revenue', 'XP', 'Units'].map((label) => (
                       <th key={label}
                           className={`px-5 py-4 text-xs font-black uppercase tracking-wider text-[#784e6c]
-                                     ${['Duration', 'Price (coins)', 'XP', 'Units', 'Revenue'].includes(label) ? 'text-right' : ''}`}>
+                                     ${['Duration', 'Cost', 'Revenue', 'XP', 'Units'].includes(label) ? 'text-right' : ''}`}>
                         {label}
                       </th>
                     ))}
@@ -725,9 +727,15 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <span className="inline-flex items-center gap-1 font-bold text-[#9720ab] text-sm">
-                          <Gem className="w-3 h-3" aria-hidden="true" />
+                        <span className="inline-flex items-center gap-1 font-bold text-[#784e6c] text-sm">
+                          <Coins className="w-3 h-3" aria-hidden="true" />
                           {(row.price * row.count).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <span className="inline-flex items-center gap-1 font-bold text-[#00675f] text-sm">
+                          <Coins className="w-3 h-3 text-[#00675f]" aria-hidden="true" />
+                          {(row.revenue * row.count).toLocaleString()}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
@@ -739,12 +747,6 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                       <td className="px-5 py-4 text-right font-bold text-[#784e6c]">
                         {(row.units * row.count).toLocaleString()}
                       </td>
-                      <td className="px-5 py-4 text-right">
-                        <span className="inline-flex items-center gap-1 font-bold text-[#00675f] text-sm">
-                          <DollarSign className="w-3 h-3" aria-hidden="true" />
-                          {(row.revenue * row.count).toLocaleString()}
-                        </span>
-                      </td>
                     </motion.tr>
                   ))}
                 </tbody>
@@ -755,14 +757,16 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                       Totals
                     </td>
                     <td className="px-5 py-3 text-right text-xs font-black text-[#966988]">—</td>
-                    <td className="px-5 py-3 text-right text-xs font-black text-[#9720ab]">—</td>
+                    <td className="px-5 py-3 text-right text-xs font-black text-[#784e6c]">
+                      {totalCost.toLocaleString()}
+                    </td>
+                    <td className="px-5 py-3 text-right text-xs font-black text-[#00675f]">
+                      {totalRevenue.toLocaleString()} G
+                    </td>
                     <td className="px-5 py-3 text-right text-xs font-black text-[#B02E7A]">
                       +{totalXP.toLocaleString()}
                     </td>
                     <td className="px-5 py-3 text-right text-xs font-black text-[#784e6c]">—</td>
-                    <td className="px-5 py-3 text-right text-xs font-black text-[#00675f]">
-                      {totalRevenue.toLocaleString()} G
-                    </td>
                   </tr>
                 </tfoot>
               </table>
