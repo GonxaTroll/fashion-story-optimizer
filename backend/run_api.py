@@ -8,6 +8,9 @@ or:
 """
 import uvicorn
 from src.api.app import app  # noqa: F401  (re-exported for uvicorn)
+from seed_demo import seed
+
+seed()
 
 if __name__ == "__main__":
     uvicorn.run("run_api:app", host="0.0.0.0", port=8000, reload=True)

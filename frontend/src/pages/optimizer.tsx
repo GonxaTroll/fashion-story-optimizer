@@ -18,32 +18,14 @@ import {
 /* ════════════════════════════════════════
    SEGMENTED CONTROL — Revenue / XP / Gems (multi-select)
    ════════════════════════════════════════ */
-type Goal = 'Revenue' | 'XP' | 'Gems'
+type Goal = 'Revenue' | 'XP'
 const GOAL_ICONS: Record<Goal, React.ElementType> = {
   Revenue: TrendingUp,
   XP:      Star,
-  Gems:    Gem,
-}
-
-function isUnsupportedGoals(goals: Goal[]): boolean {
-  return goals.includes('Gems') || goals.length > 1
 }
 
 function GoalWarning({ goals }: { goals: Goal[] }) {
-  if (!isUnsupportedGoals(goals)) return null
-
-  const hasGems = goals.includes('Gems')
-  const isCombo = goals.length > 1
-
-  let message: string
-  if (hasGems && isCombo) {
-    message = 'Gems combos aren\'t supported yet — only Revenue or XP alone.'
-  } else if (hasGems) {
-    message = 'Gems optimization isn\'t supported yet. Try Revenue or XP.'
-  } else {
-    message = 'Multi-goal optimization isn\'t supported yet — only Revenue or XP alone.'
-  }
-
+  if (goals.length <= 1) return null
   return (
     <motion.div
       initial={{ opacity: 0, y: -6 }}
@@ -53,13 +35,15 @@ function GoalWarning({ goals }: { goals: Goal[] }) {
                  rounded-2xl px-3.5 py-2.5"
     >
       <span className="text-amber-500 mt-0.5 shrink-0 text-base leading-none">⚠️</span>
-      <p className="text-xs font-semibold text-amber-700 leading-relaxed">{message}</p>
+      <p className="text-xs font-semibold text-amber-700 leading-relaxed">
+        Multi-goal optimization isn't supported yet — only Revenue or XP alone.
+      </p>
     </motion.div>
   )
 }
 
 function SegmentedControl({ value, onChange }: { value: Goal[]; onChange: (g: Goal[]) => void }) {
-  const options: Goal[] = ['Revenue', 'XP', 'Gems']
+  const options: Goal[] = ['Revenue', 'XP']
 
   const toggle = (opt: Goal) => {
     if (value.includes(opt)) {
@@ -120,7 +104,7 @@ function SlotCounter({ value, onChange }: { value: number; onChange: (n: number)
   }
 
   return (
-    <div className="flex items-center gap-3 mt-1">
+    <div className="flex items-center gap-2 mt-1">
       <motion.button
         type="button"
         onClick={() => onChange(Math.max(1, value - 1))}
@@ -128,7 +112,7 @@ function SlotCounter({ value, onChange }: { value: number; onChange: (n: number)
         whileTap={{ scale: 0.88 }}
         transition={SPRING}
         aria-label="Decrease item slots"
-        className="w-12 h-12 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-xl
+        className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
                    flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
                    transition-colors duration-200 cursor-pointer focus:outline-none
                    focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
@@ -140,7 +124,7 @@ function SlotCounter({ value, onChange }: { value: number; onChange: (n: number)
         initial={{ scale: 0.8, opacity: 0.6 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={SPRING}
-        className="flex-1 h-12 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner"
+        className="flex-1 h-9 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner"
       >
         <input
           type="text"
@@ -153,7 +137,7 @@ function SlotCounter({ value, onChange }: { value: number; onChange: (n: number)
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
           }}
           aria-label="Item slots"
-          className="w-full text-center bg-transparent font-black text-2xl text-[#46223e]
+          className="w-full text-center bg-transparent font-black text-lg text-[#46223e]
                      focus:outline-none caret-[#B02E7A] select-all"
           style={{ fontFamily: 'var(--font-headline)' }}
         />
@@ -165,7 +149,7 @@ function SlotCounter({ value, onChange }: { value: number; onChange: (n: number)
         whileTap={{ scale: 0.88 }}
         transition={SPRING}
         aria-label="Increase item slots"
-        className="w-12 h-12 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-xl
+        className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
                    flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
                    transition-colors duration-200 cursor-pointer focus:outline-none
                    focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
@@ -202,8 +186,8 @@ function OptimizerCard({
       viewport={{ once: true, margin: '-40px' }}
       transition={{ ...SPRING, delay }}
       whileHover={{ scale: 1.02 }}
-      className="bg-[#ffecf5] rounded-[1.5rem] p-8 relative overflow-hidden group
-                 hover:shadow-[0_16px_40px_rgba(176,46,122,0.13)] transition-shadow duration-300"
+      className="bg-[#ffecf5] rounded-[1.5rem] p-5 relative overflow-hidden group
+                 hover:shadow-[0_12px_28px_rgba(176,46,122,0.13)] transition-shadow duration-300"
     >
       {/* Corner accent blob */}
       <div
@@ -212,29 +196,25 @@ function OptimizerCard({
                    group-hover:opacity-30 transition-opacity duration-300 group-hover:scale-110"
         style={{ backgroundColor: accentColor, transform: 'scale(1)' }}
       />
-      <div className="flex items-start justify-between gap-4 relative z-10">
-        <div className="flex items-center gap-4">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: iconBg }}
+      <div className="flex items-center gap-3 relative z-10">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+          style={{ backgroundColor: iconBg }}
+        >
+          <Icon style={{ color: iconColor, width: 17, height: 17 }} aria-hidden="true" />
+        </div>
+        <div>
+          <h3
+            className="font-black text-base text-[#46223e] leading-tight"
+            style={{ fontFamily: 'var(--font-headline)' }}
           >
-            <Icon className="w-5.5 h-5.5" style={{ color: iconColor, width: 22, height: 22 }} aria-hidden="true" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3
-                className="font-black text-lg text-[#46223e]"
-                style={{ fontFamily: 'var(--font-headline)' }}
-              >
-                {title}
-              </h3>
-            </div>
-            <p className="text-sm text-[#784e6c] font-medium">{subtitle}</p>
-          </div>
+            {title}
+          </h3>
+          <p className="text-xs text-[#784e6c] font-medium">{subtitle}</p>
         </div>
       </div>
       {/* Control slot */}
-      <div className="mt-5 relative z-10">{children}</div>
+      <div className="mt-3 relative z-10">{children}</div>
     </motion.div>
   )
 }
@@ -374,17 +354,24 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
       localStorage.setItem('optimization_results', JSON.stringify(data))
       setStepIdx(3)
 
+      const isEmpty = !data?.results?.length
       stepTimers.current = [setTimeout(() => {
         if (bgRunningRef.current) {
           bgRunningRef.current = false
           setBgRunning(false)
-          const isEmpty = !data?.results?.length
           setBanner({
             show: true,
             status: isEmpty ? 'error' : 'success',
             message: isEmpty
-              ? 'Optimization timed out — no solution found.'
+              ? 'Optimization is not feasible — please check your available schedule or input parameters.'
               : 'Optimization complete! Your schedule is ready.',
+          })
+        } else if (isEmpty) {
+          setOverlayState('idle')
+          setBanner({
+            show: true,
+            status: 'error',
+            message: 'Optimization is not feasible — please check your available schedule or input parameters.',
           })
         } else {
           setOverlayState('done')
@@ -551,10 +538,10 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
         </motion.div>
       )}
 
-      <main className="max-w-4xl mx-auto px-6 pt-32 pb-28">
+      <main className="max-w-4xl mx-auto px-6 pt-28 pb-20">
 
         {/* ── HERO HEADER (Stitch-matched) ── */}
-        <div className="relative mb-14 overflow-visible">
+        <div className="relative mb-8 overflow-visible">
           {/* Decorative blobs matching Stitch design */}
           <div aria-hidden="true" className="absolute -top-6 -left-6 w-28 h-28 bg-[#56f1e0]/30 rounded-full blur-2xl pointer-events-none" />
           <div aria-hidden="true" className="absolute -bottom-6 -right-6 w-36 h-36 bg-[#fcbcff]/30 rounded-full blur-3xl pointer-events-none" />
@@ -593,21 +580,10 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
             OPTIMIZER SECTIONS
             Golden ratio spacing: py-5 rows, space-y-8 cards
             ══════════════════════════════════════ */}
-        <div className="space-y-8">
+        <div className="space-y-5">
 
-          {/* ── SECTION 1: SHOP BEHAVIOR — 2-col toggle grid ── */}
-          <div>
-            <motion.p
-              initial={shouldReduce ? false : { opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.08 }}
-              className="text-xs font-black uppercase tracking-[0.14em] text-[#966988] mb-4 ml-1"
-              style={{ fontFamily: 'var(--font-headline)' }}
-            >
-              Shop Behavior
-            </motion.p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {/* ── ALL OPTIONS — flat 3-col grid ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* Order Full Collection */}
               <OptimizerCard
                 icon={Layers}
@@ -765,22 +741,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                   </motion.div>
                 )}
               </OptimizerCard>
-            </div>
-          </div>
 
-          {/* ── SECTION 2: CAPACITY & GOALS — 2-col grid ── */}
-          <div>
-            <motion.p
-              initial={shouldReduce ? false : { opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-xs font-black uppercase tracking-[0.14em] text-[#966988] mb-4 ml-1"
-              style={{ fontFamily: 'var(--font-headline)' }}
-            >
-              Capacity &amp; Goals
-            </motion.p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* Item Slots */}
               <OptimizerCard
                 icon={LayoutGrid}
@@ -814,38 +775,25 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                   onChange={setGoals}
                 />
               </OptimizerCard>
-            </div>
-          </div>
 
-          {/* ── SECTION 3: SOLVER SETTINGS ── */}
-          <div>
-            <motion.p
-              initial={shouldReduce ? false : { opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.12 }}
-              className="text-xs font-black uppercase tracking-[0.14em] text-[#966988] mb-4 ml-1"
-              style={{ fontFamily: 'var(--font-headline)' }}
-            >
-              Solver Settings
-            </motion.p>
-            <OptimizerCard
-              icon={Clock}
-              iconColor="#9720ab"
-              iconBg="#f3e8ff"
-              title="Max Solve Time"
-              subtitle="Stop solver after this many minutes"
-              accentColor="#fcbcff"
-              delay={0.26}
-              shouldReduce={shouldReduce}
-            >
-              <SlotCounter
-                value={maxTime}
-                onChange={(n) => setMaxTime(Math.max(1, Math.min(60, n)))}
-              />
-              <p className="text-center text-xs text-[#966988] font-medium mt-2">minutes</p>
-            </OptimizerCard>
-          </div>
+              {/* Max Solve Time */}
+              <OptimizerCard
+                icon={Clock}
+                iconColor="#9720ab"
+                iconBg="#f3e8ff"
+                title="Max Solve Time"
+                subtitle="Stop solver after this many minutes"
+                accentColor="#fcbcff"
+                delay={0.26}
+                shouldReduce={shouldReduce}
+              >
+                <SlotCounter
+                  value={maxTime}
+                  onChange={(n) => setMaxTime(Math.max(1, Math.min(60, n)))}
+                />
+                <p className="text-center text-xs text-[#966988] font-medium mt-2">minutes</p>
+              </OptimizerCard>
+            </div>
 
           {/* ── BIG OPTIMIZE NOW CTA ── */}
           <motion.div
@@ -895,7 +843,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
             viewport={{ once: true }}
             transition={{ ...SPRING, delay: 0.1 }}
           >
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#966988] mb-4 ml-1"
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#966988] mb-3 ml-1"
                style={{ fontFamily: 'var(--font-headline)' }}>
               Your Boutique
             </p>

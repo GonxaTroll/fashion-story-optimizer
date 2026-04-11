@@ -57,7 +57,7 @@ class FashionSolver:
         self._slots = slots
         self._n_days = n_days_to_schedule
         self._time_mapping = list(range(self.HOURS_PER_DAY * n_days_to_schedule))
-        self._unavailable_times = unavailable_times if unavailable_times is not None else []
+        self._unavailable_times = set(unavailable_times) if unavailable_times is not None else set()
         self._repeat_items = repeat_items
         self._order_full_collection = order_full_collection
         # max_copies=None means unlimited; if repeat_items=False, enforce at most 1 copy
@@ -140,8 +140,8 @@ class FashionSolver:
             duration_hours = int(np.ceil(product_info["duration"]))
             
             for hour in self._time_mapping:
-                finish_hour = hour + duration_hours - 1
-                
+                finish_hour = hour + duration_hours
+
                 # Skip if product would extend beyond horizon or use unavailable times
                 if self._is_invalid_time_window(hour, finish_hour, last_hour):
                     continue
@@ -168,9 +168,7 @@ class FashionSolver:
         """
         if finish_hour > last_hour:
             return True
-        if start_hour in self._unavailable_times or finish_hour in self._unavailable_times:
-            return True
-        return False
+        return any(h in self._unavailable_times for h in range(start_hour, finish_hour + 1))
     
     @staticmethod
     def _create_variable_id(product_id: int, hour: int, slot: int) -> str:

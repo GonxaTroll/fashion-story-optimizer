@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
   Star, Gem, DollarSign, LayoutGrid, List, Lightbulb,
-  Shield, Glasses, Zap, CircleDot, Headphones, User, Clock,
+  Shield, Glasses, Zap, CircleDot, Headphones, User, Clock, Download,
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -139,6 +139,43 @@ function formatDate(iso: string): string {
   }
 }
 
+function flatHourToDatetime(flatHour: number, optimizedAt: string | null): string {
+  const base = optimizedAt ? new Date(optimizedAt) : new Date()
+  base.setHours(0, 0, 0, 0)
+  base.setDate(base.getDate() + Math.floor(flatHour / 24))
+  const hour = flatHour % 24
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())} ${pad(hour)}:00`
+}
+
+function exportCsv(results: ApiResultItem[], optimizedAt: string | null) {
+  const headers = ['Datetime', 'Slot', 'Collection', 'Title', 'Duration (h)', 'Cost', 'Revenue', 'XP', 'Units', 'Order Position']
+  const rows = [...results]
+    .sort((a, b) => a.slot - b.slot || a.hour - b.hour)
+    .map((r) => [
+      `"${flatHourToDatetime(r.hour, optimizedAt)}"`,
+      r.slot,
+      `"${r.collection.replace(/"/g, '""')}"`,
+      `"${r.title.replace(/"/g, '""')}"`,
+      r.duration,
+      r.cost,
+      r.revenue,
+      r.xp,
+      r.units,
+      r.order_position ?? '',
+    ])
+
+  const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  const date = optimizedAt ? new Date(optimizedAt).toISOString().slice(0, 10) : 'export'
+  a.href     = url
+  a.download = `fashstopt-results-${date}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 /* ─── Timeline Item Card (compact) ─── */
 function TimelineCard({ item, hourCount, delay, shouldReduce }: {
   item: Item & { collection: string; collectionColor: string }
@@ -220,6 +257,7 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
   const [loading, setLoading]         = useState(true)
   const [optimizedAt, setOptimizedAt] = useState<string | null>(null)
   const [collections, setCollections] = useState<Collection[]>([])
+  const [rawResults, setRawResults]   = useState<ApiResultItem[]>([])
   const shouldReduce = useReducedMotion() ?? false
 
   useEffect(() => {
@@ -230,6 +268,7 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
       .then((r) => r.ok ? r.json() as Promise<ApiResponse> : Promise.reject(r.status))
       .then((data) => {
         setOptimizedAt(data.optimization_date)
+        setRawResults(data.results)
         setCollections(toCollections(data.results))
       })
       .catch(() => {/* no results yet — leave collections empty */})
@@ -406,13 +445,13 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
             </motion.div>
           )}
 
-          {/* View toggle — only when there are results */}
+          {/* View toggle + CSV download — only when there are results */}
           {!loading && allItems.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.25 }}
-              className="flex justify-center mb-8"
+              className="flex flex-wrap justify-center items-center gap-3 mb-8"
             >
               <div className="inline-flex bg-[#ffd7f0] p-1 rounded-full shadow-inner">
                 {(['visual', 'table'] as const).map((v) => (
@@ -435,6 +474,22 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                   </motion.button>
                 ))}
               </div>
+
+              <motion.button
+                whileHover={shouldReduce ? {} : { scale: 1.05, y: -1 }}
+                whileTap={{ scale: 0.95 }}
+                transition={SPRING}
+                onClick={() => exportCsv(rawResults, optimizedAt)}
+                className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-sm
+                           bg-white border-2 border-[#B02E7A]/20 text-[#B02E7A]
+                           hover:bg-[#ffdff2] hover:border-[#B02E7A]/40
+                           transition-colors duration-200 cursor-pointer shadow-sm
+                           focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/40"
+                aria-label="Download results as CSV"
+              >
+                <Download className="w-4 h-4" aria-hidden="true" />
+                Export CSV
+              </motion.button>
             </motion.div>
           )}
         </header>

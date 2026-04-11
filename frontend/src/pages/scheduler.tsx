@@ -1,8 +1,8 @@
-import { useEffect, useCallback, useRef, Fragment } from 'react'
+import { useEffect, useCallback, useRef, Fragment, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
-  User, Save, RotateCcw, Zap, Bell, Coffee,
+  User, Save, RotateCcw, Zap, Bell, Coffee, CheckCircle2, X,
 } from 'lucide-react'
 import { useScheduler } from '@/hooks/use-scheduler'
 
@@ -53,6 +53,32 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
   const { grid, saving, toggleCell, setCells, resetGrid, saveGrid, loadGrid } = useScheduler()
   const shouldReduce = useReducedMotion() ?? false
 
+  /* ─── Feedback banner ─── */
+  type BannerType = 'success' | 'reset'
+  const [banner, setBanner] = useState<{ show: boolean; type: BannerType; message: string }>(
+    { show: false, type: 'success', message: '' }
+  )
+  const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const showBanner = useCallback((type: BannerType, message: string) => {
+    if (bannerTimer.current) clearTimeout(bannerTimer.current)
+    setBanner({ show: true, type, message })
+    bannerTimer.current = setTimeout(
+      () => setBanner((b) => ({ ...b, show: false })),
+      3500
+    )
+  }, [])
+
+  const handleSave = useCallback(async () => {
+    await saveGrid()
+    showBanner('success', 'Schedule saved! Your availability is up to date.')
+  }, [saveGrid, showBanner])
+
+  const handleReset = useCallback(() => {
+    resetGrid()
+    showBanner('reset', 'Schedule cleared.')
+  }, [resetGrid, showBanner])
+
   /* ─── Drag-to-select (refs avoid re-renders during drag) ─── */
   const isDragging = useRef(false)
   const dragValue  = useRef(false)
@@ -63,6 +89,8 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
     window.addEventListener('pointerup', stop)
     return () => window.removeEventListener('pointerup', stop)
   }, [])
+
+  useEffect(() => () => { if (bannerTimer.current) clearTimeout(bannerTimer.current) }, [])
 
   const handleCellPointerDown = useCallback((hour: number, day: number) => {
     isDragging.current = true
@@ -158,6 +186,38 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
           </div>
         </div>
       </motion.nav>
+
+      {/* ── FEEDBACK BANNER ── */}
+      {banner.show && (
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={SPRING}
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-4"
+          role="status"
+          aria-live="polite"
+        >
+          <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl border
+            ${banner.type === 'success'
+              ? 'bg-[#edfff9] border-[#56f1e0] text-[#00675f]'
+              : 'bg-[#ffd7f0] border-[#B02E7A]/20 text-[#B02E7A]'
+            }`}
+          >
+            {banner.type === 'success'
+              ? <CheckCircle2 className="w-5 h-5 shrink-0" aria-hidden="true" />
+              : <RotateCcw className="w-4 h-4 shrink-0" aria-hidden="true" />
+            }
+            <p className="flex-1 text-sm font-bold">{banner.message}</p>
+            <button
+              onClick={() => setBanner((b) => ({ ...b, show: false }))}
+              className="text-current opacity-60 hover:opacity-100 transition-opacity cursor-pointer shrink-0 focus:outline-none"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* ══════════════════════════════
           MAIN CONTENT
@@ -282,7 +342,7 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
                   whileHover={shouldReduce ? {} : { scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
                   transition={SPRING}
-                  onClick={saveGrid}
+                  onClick={handleSave}
                   disabled={saving}
                   className="bubblegum-gradient text-white px-8 py-3.5 rounded-full font-black
                              text-base shadow-[0_15px_30px_rgba(168,33,110,0.30)] cursor-pointer
@@ -309,7 +369,7 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
                   whileHover={shouldReduce ? {} : { scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
                   transition={SPRING}
-                  onClick={resetGrid}
+                  onClick={handleReset}
                   className="bg-white text-[#B02E7A] px-8 py-3.5 rounded-full font-black text-base
                              cursor-pointer hover:bg-[#ffecf5] transition-colors duration-150
                              focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/40

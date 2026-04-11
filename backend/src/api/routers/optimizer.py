@@ -142,11 +142,11 @@ def run_optimization(
     # 5 — Persist results
     if not result_df.empty:
         rows = [
-            (optimization_date, user_id, int(row["hour"]), int(row["id"]))
+            (optimization_date, user_id, int(row["hour"]), int(row["id"]), int(row["slot"]))
             for _, row in result_df.iterrows()
         ]
         conn.executemany(
-            "INSERT INTO optimization_results (optimization_date, user_id, hour, item_id) VALUES (?, ?, ?, ?)",
+            "INSERT INTO optimization_results (optimization_date, user_id, hour, item_id, slot) VALUES (?, ?, ?, ?, ?)",
             rows,
         )
 
