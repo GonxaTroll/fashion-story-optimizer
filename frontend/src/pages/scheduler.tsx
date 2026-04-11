@@ -164,10 +164,20 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
 
             {/* Right: avatar + sign-out */}
             <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-2 text-xs font-semibold text-[#784e6c] bg-[#ffecf5] rounded-xl px-3 py-1.5">
+              <motion.button
+                onClick={() => onNavigate('account')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={SPRING}
+                aria-label="Go to account settings"
+                className="hidden md:flex items-center gap-2 text-xs font-semibold text-[#784e6c]
+                           bg-[#ffecf5] hover:bg-[#ffdff2] rounded-xl px-3 py-1.5
+                           transition-colors duration-150 cursor-pointer focus:outline-none
+                           focus:ring-2 focus:ring-[#B02E7A]/40"
+              >
                 <User className="w-3.5 h-3.5 text-[#B02E7A]" aria-hidden="true" />
                 Admin
-              </div>
+              </motion.button>
               <motion.button
                 onClick={onSignOut}
                 whileHover={{ scale: 1.05 }}
