@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.py[oc]
+*.egg-info/
+.git/
+data/optimizer.duckdb
+images/

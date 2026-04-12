@@ -1,0 +1,113 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* FashStOpt color palette */
+  --color-background: #FFF5F8;
+  --color-primary: #B02E7A;
+  --color-primary-dim: #980f61;
+  --color-secondary: #F472B6;
+  --color-accent-mint: #4ADE80;
+
+  /* Stitch design-system colors */
+  --color-surface: #fff4f8;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #ffecf5;
+  --color-surface-container: #ffdff2;
+  --color-surface-container-high: #ffd7f0;
+  --color-surface-container-highest: #ffcfee;
+  --color-surface-variant: #ffcfee;
+  --color-on-surface: #46223e;
+  --color-on-surface-variant: #784e6c;
+  --color-outline: #966988;
+  --color-outline-variant: #d09ec0;
+  --color-primary-container: #ff6cb5;
+  --color-on-primary: #ffeff3;
+  --color-secondary-container: #fcbcff;
+  --color-on-secondary-container: #7c0091;
+  --color-tertiary-container: #56f1e0;
+  --color-error: #b41340;
+
+  /* Typography */
+  --font-headline: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Be Vietnam Pro", sans-serif;
+
+  /* Border radius */
+  --radius-card: 1rem;
+  --radius-lg: 2rem;
+  --radius-full: 9999px;
+}
+
+/* Dot-pattern background */
+.bg-pattern {
+  background-color: #fff4f8;
+  background-image: radial-gradient(#ffecf5 2px, transparent 2px);
+  background-size: 32px 32px;
+}
+
+/* Bubblegum gradient (magenta → pink) */
+.bubblegum-gradient {
+  background: linear-gradient(135deg, #a8216e 0%, #ff6cb5 100%);
+}
+
+/* Inset shadow for inputs */
+.soft-well {
+  box-shadow: inset 0 2px 4px rgba(70, 34, 62, 0.05);
+}
+
+/* Rotating conic gradient for Magic / Shine border on stat cards */
+@property --shine-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes shine-rotate {
+  to { --shine-angle: 360deg; }
+}
+.shine-card {
+  position: relative;
+  isolation: isolate;
+}
+.shine-card::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 1.1rem; /* 1px bigger than inner rounded-2xl (1rem) */
+  background: conic-gradient(
+    from var(--shine-angle),
+    #ff6cb5 0%,
+    #fcbcff 25%,
+    #56f1e0 50%,
+    #B02E7A 75%,
+    #ff6cb5 100%
+  );
+  z-index: -1;
+  animation: shine-rotate 4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.shine-card:hover::before {
+  opacity: 1;
+}
+
+/* Shimmer button sweep (21st.dev Shiny pattern) */
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-120%) skewX(-12deg); }
+  100% { transform: translateX(220%)  skewX(-12deg); }
+}
+.shimmer-sweep {
+  animation: shimmer-sweep 2.2s ease-in-out infinite;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100svh;
+}
