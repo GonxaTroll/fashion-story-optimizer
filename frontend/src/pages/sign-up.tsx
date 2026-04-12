@@ -327,7 +327,7 @@ export default function SignUpPage({ onSignUp, onGoToSignIn }: Props) {
           className="text-xs font-black text-[#784e6c]/50 uppercase tracking-widest"
           style={{ fontFamily: 'var(--font-headline)' }}
         >
-          © 2025 FashStOpt · Stay Playful
+          © 2026 FashStOpt · Stay Playful
         </span>
       </footer>
     </div>
