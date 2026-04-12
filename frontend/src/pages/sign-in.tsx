@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, Zap } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Zap } from 'lucide-react'
 
 /* ─── Admin credentials (demo) ─── */
 const DEMO = { email: 'admin@fashstopt.com', password: 'admin1234' }
@@ -115,9 +115,9 @@ export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
               initial={shouldReduce ? false : { scale: 0, rotate: -15 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 380, damping: 14, delay: 0.25 }}
-              className="inline-flex items-center justify-center w-16 h-16 bg-[#ffdff2] rounded-full mb-5 shadow-[0_6px_18px_rgba(176,46,122,0.12)]"
+              className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-5 shadow-[0_6px_18px_rgba(176,46,122,0.20)] overflow-hidden"
             >
-              <Sparkles className="text-[#B02E7A] w-7 h-7" aria-hidden="true" />
+              <img src="/fashstopt_logo.png" alt="FashStOpt" className="w-full h-full object-cover" />
             </motion.div>
 
             <h1

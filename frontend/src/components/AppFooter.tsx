@@ -29,12 +29,19 @@ export default function AppFooter() {
 
       <footer className="bg-[#ffd7f0] rounded-t-[2rem] py-10 px-6">
         <div className="max-w-7xl mx-auto flex flex-col items-center gap-6">
-          <span
-            className="text-base font-black text-[#46223e] uppercase tracking-widest"
-            style={{ fontFamily: 'var(--font-headline)' }}
-          >
-            FashStOpt
-          </span>
+          <div className="flex flex-col items-center gap-2">
+            <img
+              src="/fashstopt_logo.png"
+              alt="FashStOpt"
+              className="w-16 h-16 rounded-2xl object-cover shadow-[0_6px_18px_rgba(176,46,122,0.18)]"
+            />
+            <span
+              className="text-base font-black text-[#46223e] uppercase tracking-widest"
+              style={{ fontFamily: 'var(--font-headline)' }}
+            >
+              FashStOpt
+            </span>
+          </div>
 
           {/* Store links */}
           <div className="flex flex-col items-center gap-2">

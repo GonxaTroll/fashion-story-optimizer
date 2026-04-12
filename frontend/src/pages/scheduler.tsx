@@ -3,7 +3,7 @@ import { useCurrentUser } from '@/hooks/use-current-user'
 import AppFooter from '@/components/AppFooter'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
-  Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
+  LogOut, Home, Calendar, Settings, BarChart2,
   User, Save, RotateCcw, Zap, Bell, Coffee, CheckCircle2, X,
 } from 'lucide-react'
 import { useScheduler } from '@/hooks/use-scheduler'
@@ -129,9 +129,7 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
 
             {/* Logo */}
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#ffdff2] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-[#B02E7A]" aria-hidden="true" />
-              </div>
+              <img src="/fashstopt_logo.png" alt="FashStOpt" className="w-9 h-9 rounded-xl object-cover" />
               <span
                 className="text-xl font-black italic text-[#B02E7A] leading-none"
                 style={{ fontFamily: 'var(--font-headline)' }}
