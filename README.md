@@ -8,7 +8,7 @@ A web app that helps players of [Fashion Story](https://apps.apple.com/co/app/fa
 
 ## Demo
 
-![FashStOpt demo](https://github.com/user-attachments/assets/f095642f-824d-4744-81f8-f0b1b8ec43b9)
+<video src="https://github.com/user-attachments/assets/f095642f-824d-4744-81f8-f0b1b8ec43b9" controls width="100%"></video>
 
 ---
 
