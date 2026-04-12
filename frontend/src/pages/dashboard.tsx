@@ -1,12 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import AppFooter from '@/components/AppFooter'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
-  TrendingUp, Star, Gem, Shirt, Store, User, X,
-  Clock, Sliders, Zap, CheckCircle2, ChevronRight,
+  TrendingUp, Star, Package, Shirt, Store, User, X,
+  Clock, Sliders, Zap, CheckCircle2, ChevronRight, ExternalLink,
 } from 'lucide-react'
-import { useShopStats } from '@/hooks/use-shop-stats'
+
+const APPSTORE_URL  = 'https://apps.apple.com/co/app/fashion-story/id420590864'
+const PLAYSTORE_URL = 'https://play.google.com/store/apps/details?id=com.teamlava.fashionstory&hl=es'
+const API_BASE      = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
+interface ApiResultItem {
+  hour: number; slot: number; title: string; collection: string
+  cost: number; xp: number; units: number; revenue: number
+  duration: number; order_position: number | null
+}
 
 /* ─── Shared spring configs ─── */
 const SPRING     = { type: 'spring', stiffness: 400, damping: 15 } as const
@@ -30,6 +40,7 @@ interface StatCardProps {
   label: string
   value: number
   prefix?: string
+  decimals?: boolean
   delta: string
   icon: React.ElementType
   circleColor: string
@@ -38,7 +49,7 @@ interface StatCardProps {
 }
 
 function StatCard({
-  label, value, prefix = '', delta,
+  label, value, prefix = '', decimals = false, delta,
   icon: Icon, circleColor, delay, shouldReduce,
 }: StatCardProps) {
   return (
@@ -82,12 +93,69 @@ function StatCard({
         <div>
           <p className="text-xs font-bold text-[#784e6c] uppercase tracking-widest mb-0.5">{label}</p>
           <p className="text-2xl font-black text-[#46223e] leading-none" style={{ fontFamily: 'var(--font-headline)' }}>
-            {prefix}{value.toLocaleString()}
+            {prefix}{decimals ? value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 }) : value.toLocaleString()}
           </p>
           <p className="text-xs text-[#00675f] font-bold mt-1">{delta}</p>
         </div>
       </motion.div>
     </motion.div>
+  )
+}
+
+/* ════════════════════════════════════════════
+   Apple / Google Play store badge buttons
+   ════════════════════════════════════════════ */
+function AppleBadge() {
+  return (
+    <a
+      href={APPSTORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Download Fashion Story on the App Store"
+      className="group flex items-center gap-3 bg-[#46223e] hover:bg-[#5a2d52]
+                 text-white rounded-2xl px-5 py-3 transition-all duration-200
+                 shadow-[0_8px_20px_rgba(70,34,62,0.25)]
+                 hover:shadow-[0_12px_28px_rgba(70,34,62,0.35)]
+                 focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/60 cursor-pointer"
+    >
+      {/* Apple logo SVG */}
+      <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0 fill-white" aria-hidden="true">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      </svg>
+      <div className="text-left leading-none">
+        <p className="text-[9px] font-semibold text-white/70 uppercase tracking-widest mb-0.5">Download on the</p>
+        <p className="text-base font-black" style={{ fontFamily: 'var(--font-headline)' }}>App Store</p>
+      </div>
+    </a>
+  )
+}
+
+function PlayBadge() {
+  return (
+    <a
+      href={PLAYSTORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Get Fashion Story on Google Play"
+      className="group flex items-center gap-3 bg-white hover:bg-[#fff5fb]
+                 text-[#46223e] rounded-2xl px-5 py-3 transition-all duration-200
+                 border-2 border-[#ffd7f0] hover:border-[#ff6cb5]
+                 shadow-[0_8px_20px_rgba(176,46,122,0.10)]
+                 hover:shadow-[0_12px_28px_rgba(176,46,122,0.20)]
+                 focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/60 cursor-pointer"
+    >
+      {/* Google Play triangle logo */}
+      <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0" aria-hidden="true">
+        <path d="M3.18 23.76c.3.17.64.24.99.2l13.12-11.75L13.65 8.6 3.18 23.76z" fill="#EA4335"/>
+        <path d="M20.6 10.27L17.3 8.4l-3.65 3.81 3.65 3.58 3.33-1.89a1.75 1.75 0 0 0 0-3.63z" fill="#FBBC04"/>
+        <path d="M3.18.24A1.74 1.74 0 0 0 2.4 1.7v20.6c0 .6.28 1.12.78 1.46L13.65 12 3.18.24z" fill="#4285F4"/>
+        <path d="M4.17.04 13.65 8.6l3.65-3.58L4.17.05A1.73 1.73 0 0 0 3.18.24c-.01 0 .99-.2.99-.2z" fill="#34A853"/>
+      </svg>
+      <div className="text-left leading-none">
+        <p className="text-[9px] font-semibold text-[#784e6c] uppercase tracking-widest mb-0.5">Get it on</p>
+        <p className="text-base font-black" style={{ fontFamily: 'var(--font-headline)' }}>Google Play</p>
+      </div>
+    </a>
   )
 }
 
@@ -289,20 +357,42 @@ function TutorialModal({ onClose, shouldReduce }: { onClose: () => void; shouldR
 interface Props { onSignOut: () => void; onNavigate: (page: string) => void }
 
 export default function DashboardPage({ onSignOut, onNavigate }: Props) {
-  const { profit, xp, gems, addProfit, addXp, addGems } = useShopStats()
   const { name: currentUserName } = useCurrentUser()
-  const seeded     = useRef(false)
   const shouldReduce = useReducedMotion() ?? false
   const [tutorialOpen, setTutorialOpen] = useState(false)
 
-  /* Seed store once on first mount */
+  /* Latest optimization results */
+  const [results, setResults]         = useState<ApiResultItem[]>([])
+  const [optimizedAt, setOptimizedAt] = useState<string | null>(null)
+  const [loadingStats, setLoadingStats] = useState(true)
+  const hasFetched = useRef(false)
+
   useEffect(() => {
-    if (seeded.current) return
-    seeded.current = true
-    addProfit(1240)
-    addXp(450)
-    addGems(12)
-  }, [addProfit, addXp, addGems])
+    if (hasFetched.current) return
+    hasFetched.current = true
+    const token = localStorage.getItem('auth_token')
+    fetch(`${API_BASE}/optimize/latest`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((data) => { setResults(data.results ?? []); setOptimizedAt(data.optimization_date ?? null) })
+      .catch(() => {})
+      .finally(() => setLoadingStats(false))
+  }, [])
+
+  const totalRevenue = results.reduce((s, r) => s + r.revenue, 0)
+  const totalXP      = results.reduce((s, r) => s + r.xp, 0)
+  const totalItems   = results.length
+
+  const optimizedLabel = optimizedAt
+    ? `as of ${new Date(optimizedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    : 'no optimization yet'
+
+  const stats = [
+    { label: 'Revenue',        value: totalRevenue, prefix: '',  decimals: true,  delta: optimizedLabel, icon: TrendingUp, circleColor: '#f59e0b' },
+    { label: 'XP Gained',      value: totalXP,      prefix: '',  decimals: false, delta: optimizedLabel, icon: Star,       circleColor: '#60a5fa' },
+    { label: 'Items Scheduled',value: totalItems,   prefix: '',  decimals: false, delta: optimizedLabel, icon: Package,    circleColor: '#f472b6' },
+  ]
 
   /* Floating animation (respects reduced-motion) */
   const floatY = shouldReduce ? {} : { y: [0, -10, 0] as [number, number, number] }
@@ -312,12 +402,6 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
 
   const navLinks       = ['Home', 'Schedule', 'Optimizer', 'Results']
   const mobileNavIcons = [Home, Calendar, Settings, BarChart2]
-
-  const stats = [
-    { label: 'Profit',    value: profit, prefix: '$', delta: '+$1,240 today',    icon: TrendingUp, circleColor: '#f59e0b' },
-    { label: 'XP Gained', value: xp,     prefix: '',  delta: '+450 this session', icon: Star,       circleColor: '#60a5fa' },
-    { label: 'Gems',      value: gems,   prefix: '',  delta: '+12 collected',      icon: Gem,        circleColor: '#f472b6' },
-  ]
 
   return (
     <div className="min-h-screen bg-[#FFF5F8] overflow-x-hidden">
@@ -445,12 +529,23 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                 Dress Up Your{' '}
                 <span className="text-[#B02E7A] italic">Dreams!</span>
               </h1>
-              <p className="text-lg text-[#784e6c] font-medium max-w-md mb-10 leading-relaxed">
-                FashStOpt is a smart scheduler for the{' '}
-                <span className="font-black text-[#B02E7A]">Fashion Story</span> mobile game.
-                It uses optimization algorithms to find the best item-to-hour assignment
-                that maximizes your revenue, XP, and gems — so you can play smarter, not harder.
+              <p className="text-lg text-[#784e6c] font-medium max-w-md mb-4 leading-relaxed">
+                A smart scheduler for{' '}
+                <span className="font-black text-[#B02E7A]">Fashion Story</span> by Storm8 —
+                the mobile boutique game. FashStOpt uses optimization algorithms to find the
+                perfect item-to-hour lineup that maximizes your coins, XP &amp; gems every day.
               </p>
+              {/* Inline store rating */}
+              <div className="flex items-center gap-2 mb-8">
+                <div className="flex items-center gap-0.5">
+                  {[...Array(4)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 text-[#f59e0b] fill-[#f59e0b]" aria-hidden="true" />
+                  ))}
+                  <Star className="w-4 h-4 text-[#d09ec0]" aria-hidden="true" />
+                </div>
+                <span className="text-sm font-bold text-[#784e6c]">4.0</span>
+                <span className="text-xs text-[#966988] font-medium">· Storm8 Studios · iOS &amp; Android</span>
+              </div>
               <div className="flex flex-wrap gap-4">
                 <motion.button
                   onClick={() => onNavigate('optimizer')}
@@ -487,32 +582,45 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                              overflow-hidden flex flex-col items-center justify-center gap-3 relative"
                   style={{ background: 'linear-gradient(155deg, #ffdff2 0%, #fcbcff 45%, #56f1e0 100%)' }}
                 >
-                  <div className="flex gap-3">
-                    {['#ff6cb5', '#fcbcff', '#56f1e0', '#B02E7A'].map((c, i) => (
+                  {/* Rack bar */}
+                  <div className="w-52 h-2 bg-white/60 rounded-full shadow-inner mb-1" />
+                  {/* Clothing items on rack — game palette: hot pink, lavender, mint, rose */}
+                  <div className="flex gap-2.5 -mt-1">
+                    {[
+                      { color: '#E87C98', height: '3.8rem' },
+                      { color: '#c084fc', height: '3.2rem' },
+                      { color: '#56f1e0', height: '3.6rem' },
+                      { color: '#B02E7A', height: '4rem'   },
+                      { color: '#ff6cb5', height: '3.4rem' },
+                    ].map(({ color, height }, i) => (
                       <motion.div
                         key={i}
-                        className="w-9 h-[3.5rem] rounded-xl border-2 border-white/60 shadow-md"
-                        style={{ backgroundColor: c }}
-                        initial={{ y: 8 + i * 4, opacity: 0 }}
+                        className="rounded-xl border-2 border-white/70 shadow-md relative"
+                        style={{ backgroundColor: color, width: '2rem', height }}
+                        initial={{ y: 10 + i * 3, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.4 + i * 0.07 }}
+                        transition={{ delay: 0.38 + i * 0.06 }}
+                      >
+                        {/* Hanger notch */}
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-2 h-2 bg-white/80 rounded-full" />
+                      </motion.div>
+                    ))}
+                  </div>
+                  {/* Floor rack */}
+                  <div className="w-44 h-1 bg-white/40 rounded-full mt-2" />
+                  <div className="flex gap-2 mt-1">
+                    {['#ffd7f0','#c4b5fd','#99f6e4'].map((c, i) => (
+                      <motion.div
+                        key={i}
+                        className="w-7 h-9 rounded-lg border border-white/50 shadow-sm"
+                        style={{ backgroundColor: c }}
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.58 + i * 0.05 }}
                       />
                     ))}
                   </div>
-                  <div className="w-40 h-1 bg-white/50 rounded-full" />
-                  <div className="flex gap-2.5">
-                    {['#9720ab', '#ff6cb5', '#56f1e0'].map((c, i) => (
-                      <motion.div
-                        key={i}
-                        className="w-8 h-11 rounded-lg border-2 border-white/50 shadow"
-                        style={{ backgroundColor: c }}
-                        initial={{ y: 12, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.55 + i * 0.06 }}
-                      />
-                    ))}
-                  </div>
-                  <Store className="w-10 h-10 text-white/70 mt-1" aria-hidden="true" />
+                  <Store className="w-8 h-8 text-white/60 mt-1" aria-hidden="true" />
                 </div>
               </motion.div>
 
@@ -543,6 +651,60 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
           </div>
         </section>
 
+        {/* ── GET THE GAME BANNER ── */}
+        <section className="max-w-7xl mx-auto mb-8" aria-label="Get the game">
+          <motion.div
+            initial={shouldReduce ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.45 }}
+            className="relative overflow-hidden rounded-[2rem] border-2 border-[#ffd7f0]"
+            style={{
+              background: 'linear-gradient(120deg, #fff0fb 0%, #ffdff2 40%, #f3e8ff 100%)',
+            }}
+          >
+            {/* Decorative blobs */}
+            <div aria-hidden="true" className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-[#fcbcff]/40 blur-2xl pointer-events-none" />
+            <div aria-hidden="true" className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-[#56f1e0]/30 blur-2xl pointer-events-none" />
+
+            {/* Decorative clothing tags */}
+            <div aria-hidden="true" className="absolute top-4 right-32 hidden lg:flex gap-2 opacity-30">
+              {['#ff6cb5','#fcbcff','#56f1e0','#B02E7A','#9720ab'].map((c, i) => (
+                <div key={i} className="w-5 h-8 rounded-md border border-white/60" style={{ backgroundColor: c, transform: `rotate(${(i - 2) * 8}deg)` }} />
+              ))}
+            </div>
+
+            <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6 px-8 py-7">
+              {/* Left: branding */}
+              <div className="flex items-center gap-4">
+                {/* App icon placeholder — boutique storefront */}
+                <div
+                  className="w-16 h-16 rounded-2xl border-4 border-white shadow-xl flex items-center justify-center shrink-0"
+                  style={{ background: 'linear-gradient(135deg, #B02E7A 0%, #ff6cb5 100%)' }}
+                >
+                  <Store className="w-8 h-8 text-white" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-[#B02E7A] uppercase tracking-widest mb-0.5"
+                     style={{ fontFamily: 'var(--font-headline)' }}>
+                    Play the original game
+                  </p>
+                  <p className="text-xl font-black text-[#46223e]"
+                     style={{ fontFamily: 'var(--font-headline)' }}>
+                    Fashion Story™
+                  </p>
+                  <p className="text-xs text-[#784e6c] font-medium">by Storm8 Studios</p>
+                </div>
+              </div>
+
+              {/* Right: badges */}
+              <div className="flex flex-wrap gap-3 justify-center sm:justify-end">
+                <AppleBadge />
+                <PlayBadge />
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
         {/* ── LAST RESULTS ── */}
         <section className="max-w-7xl mx-auto" aria-label="Last results">
           <div className="bg-[#ffdff2] rounded-[2rem] p-8 md:p-10">
@@ -554,28 +716,87 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                 >
                   Last Results
                 </h2>
-                <p className="text-[#784e6c] font-bold text-sm">
-                  Store Status:{' '}
-                  <span className="text-[#00675f] font-black">Trending!</span>
-                </p>
+                {optimizedAt ? (
+                  <p className="text-[#784e6c] font-bold text-sm">
+                    Optimized on{' '}
+                    <span className="text-[#00675f] font-black">
+                      {new Date(optimizedAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-[#784e6c] font-bold text-sm">No optimization run yet</p>
+                )}
               </div>
+              <motion.button
+                onClick={() => onNavigate('results')}
+                whileHover={shouldReduce ? {} : { scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                transition={SPRING}
+                className="flex items-center gap-2 text-sm font-black text-[#B02E7A]
+                           bg-white hover:bg-[#ffecf5] rounded-2xl px-5 py-2.5
+                           transition-colors duration-150 cursor-pointer shadow-sm
+                           focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/40"
+                style={{ fontFamily: 'var(--font-headline)' }}
+              >
+                View full results
+                <ChevronRight className="w-4 h-4" aria-hidden="true" />
+              </motion.button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {stats.map(({ label, value, prefix, delta, icon, circleColor }, i) => (
-                <StatCard
-                  key={label}
-                  label={label}
-                  value={value}
-                  prefix={prefix}
-                  delta={delta}
-                  icon={icon}
-                  circleColor={circleColor}
-                  delay={0.08 + i * 0.1}
-                  shouldReduce={shouldReduce}
-                />
-              ))}
-            </div>
+            {loadingStats ? (
+              /* Skeleton */
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl p-6 flex items-center gap-5 animate-pulse">
+                    <div className="w-14 h-14 rounded-full bg-[#ffd7f0] shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-3 w-16 bg-[#ffd7f0] rounded-full" />
+                      <div className="h-7 w-24 bg-[#ffbfe8] rounded-full" />
+                      <div className="h-2.5 w-20 bg-[#ffd7f0] rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : results.length === 0 ? (
+              /* Empty state */
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <div className="w-16 h-16 rounded-full bg-white/60 flex items-center justify-center">
+                  <Package className="w-8 h-8 text-[#d09ec0]" aria-hidden="true" />
+                </div>
+                <p className="text-[#784e6c] font-bold text-sm text-center">
+                  No results yet — run the optimizer first!
+                </p>
+                <motion.button
+                  onClick={() => onNavigate('optimizer')}
+                  whileHover={shouldReduce ? {} : { scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={SPRING}
+                  className="bubblegum-gradient text-white px-6 py-2.5 rounded-full font-black
+                             text-sm shadow-[0_8px_20px_rgba(168,33,110,0.25)] cursor-pointer
+                             focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/50 mt-1"
+                  style={{ fontFamily: 'var(--font-headline)' }}
+                >
+                  Go to Optimizer
+                </motion.button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {stats.map(({ label, value, prefix, decimals, delta, icon, circleColor }, i) => (
+                  <StatCard
+                    key={label}
+                    label={label}
+                    value={value}
+                    prefix={prefix}
+                    decimals={decimals}
+                    delta={delta}
+                    icon={icon}
+                    circleColor={circleColor}
+                    delay={0.08 + i * 0.1}
+                    shouldReduce={shouldReduce}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </main>
@@ -583,32 +804,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
       {/* ══════════════════════════════
           FOOTER
           ══════════════════════════════ */}
-      <footer className="bg-[#ffd7f0] rounded-t-[2rem] py-10 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col items-center gap-5">
-          <span
-            className="text-base font-black text-[#46223e] uppercase tracking-widest"
-            style={{ fontFamily: 'var(--font-headline)' }}
-          >
-            FashStOpt
-          </span>
-          <div className="flex flex-wrap justify-center gap-8">
-            {['About', 'Support', 'Privacy', 'Terms'].map((link) => (
-              <a
-                key={link}
-                href="#"
-                className="text-sm font-medium text-[#B02E7A] hover:underline underline-offset-4
-                           decoration-2 transition-all duration-150 focus:outline-none
-                           focus:ring-1 focus:ring-[#B02E7A] rounded"
-              >
-                {link}
-              </a>
-            ))}
-          </div>
-          <p className="text-xs font-bold text-[#966988] uppercase tracking-widest">
-            © 2025 FashStOpt · Stay Playful.
-          </p>
-        </div>
-      </footer>
+      <AppFooter />
 
       {/* ══════════════════════════════
           MOBILE BOTTOM NAV

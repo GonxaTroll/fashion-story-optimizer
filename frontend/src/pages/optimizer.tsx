@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import AppFooter from '@/components/AppFooter'
 import { flushSync } from 'react-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
@@ -838,27 +839,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
       </main>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-[#ffd7f0] rounded-t-[2rem] py-10 px-6">
-        <div className="max-w-4xl mx-auto flex flex-col items-center gap-5">
-          <span className="text-base font-black text-[#46223e] uppercase tracking-widest"
-                style={{ fontFamily: 'var(--font-headline)' }}>
-            FashStOpt
-          </span>
-          <div className="flex flex-wrap justify-center gap-8">
-            {['About', 'Support', 'Privacy', 'Terms'].map((link) => (
-              <a key={link} href="#"
-                 className="text-sm font-medium text-[#B02E7A] hover:underline underline-offset-4
-                            decoration-2 transition-all duration-150 focus:outline-none
-                            focus:ring-1 focus:ring-[#B02E7A] rounded">
-                {link}
-              </a>
-            ))}
-          </div>
-          <p className="text-xs font-bold text-[#966988] uppercase tracking-widest">
-            © 2025 FashStOpt · Stay Playful.
-          </p>
-        </div>
-      </footer>
+      <AppFooter />
 
       {/* ══════════════════════════════
           OPTIMIZATION PROGRESS OVERLAY
