@@ -1,14 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCurrentUser } from '@/hooks/use-current-user'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
-  TrendingUp, Star, Gem, Shirt, Store, Palette, DollarSign, User,
+  TrendingUp, Star, Gem, Shirt, Store, User, X,
+  Clock, Sliders, Zap, CheckCircle2, ChevronRight,
 } from 'lucide-react'
 import { useShopStats } from '@/hooks/use-shop-stats'
 
 /* ─── Shared spring configs ─── */
-const SPRING = { type: 'spring', stiffness: 400, damping: 15 } as const
+const SPRING     = { type: 'spring', stiffness: 400, damping: 15 } as const
 const SPRING_POP = { type: 'spring', stiffness: 280, damping: 18 } as const
 
 /* ─── Framer variants for shimmer propagation ─── */
@@ -23,8 +24,7 @@ const shimmerVariants = {
 }
 
 /* ════════════════════════════════════════════
-   Gamified Stat Card — shine-card CSS border +
-   Framer shimmer sweep + spring pop-in
+   Gamified Stat Card
    ════════════════════════════════════════════ */
 interface StatCardProps {
   label: string
@@ -53,16 +53,14 @@ function StatCard({
       className="shine-card bg-white rounded-2xl p-6 flex items-center gap-5
                  shadow-[0_8px_24px_rgba(176,46,122,0.08)]
                  hover:shadow-[0_16px_40px_rgba(176,46,122,0.18)]
-                 transition-shadow duration-300 cursor-default"
+                 transition-shadow duration-300 cursor-default overflow-hidden relative"
     >
-      {/* Override opacity/y with spring entry on animate */}
       <motion.div
         initial={{ opacity: 0, y: 28 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...SPRING_POP, delay }}
         className="contents"
       >
-        {/* Shimmer sweep */}
         {!shouldReduce && (
           <motion.div
             variants={shimmerVariants}
@@ -75,23 +73,15 @@ function StatCard({
             }}
           />
         )}
-
-        {/* Colored circle icon (matching Stitch design) */}
         <div
           className="w-14 h-14 rounded-full flex items-center justify-center border-4 border-white shadow-lg shrink-0"
           style={{ backgroundColor: circleColor }}
         >
           <Icon className="w-6 h-6 text-white" aria-hidden="true" />
         </div>
-
         <div>
-          <p className="text-xs font-bold text-[#784e6c] uppercase tracking-widest mb-0.5">
-            {label}
-          </p>
-          <p
-            className="text-2xl font-black text-[#46223e] leading-none"
-            style={{ fontFamily: 'var(--font-headline)' }}
-          >
+          <p className="text-xs font-bold text-[#784e6c] uppercase tracking-widest mb-0.5">{label}</p>
+          <p className="text-2xl font-black text-[#46223e] leading-none" style={{ fontFamily: 'var(--font-headline)' }}>
             {prefix}{value.toLocaleString()}
           </p>
           <p className="text-xs text-[#00675f] font-bold mt-1">{delta}</p>
@@ -102,39 +92,193 @@ function StatCard({
 }
 
 /* ════════════════════════════════════════════
-   How It Works Card — pink-tinted, icon glow
+   Tutorial Step Card
    ════════════════════════════════════════════ */
-function HowCard({
-  title, desc, icon: Icon, iconColor, delay,
-}: {
-  title: string; desc: string
-  icon: React.ElementType; iconColor: string; delay: number
-}) {
+const TUTORIAL_STEPS = [
+  {
+    number: 1,
+    icon: Clock,
+    iconColor: '#B02E7A',
+    iconBg: '#ffdff2',
+    title: 'Set Your Schedule',
+    description:
+      'Go to the Schedule page and mark the hours you are available to play each day of the week. The optimizer will only schedule items during your active hours.',
+    tip: 'Be realistic — only check hours you can actually open the game.',
+  },
+  {
+    number: 2,
+    icon: Sliders,
+    iconColor: '#9720ab',
+    iconBg: '#f3e8ff',
+    title: 'Configure the Optimizer',
+    description:
+      'Open the Optimizer page and choose your goals (Revenue, XP, or Gems), the number of simultaneous slots, and whether to allow item repeats across hours.',
+    tip: 'For best profit, select Revenue + XP together and enable full collection mode.',
+  },
+  {
+    number: 3,
+    icon: Zap,
+    iconColor: '#d97706',
+    iconBg: '#fef3c7',
+    title: 'Run the Optimization',
+    description:
+      'Hit Run Optimizer. The solver finds the best item-to-hour assignment that maximizes your selected goals while respecting your availability.',
+    tip: 'It runs in seconds. If it takes longer, reduce the number of slots.',
+  },
+  {
+    number: 4,
+    icon: CheckCircle2,
+    iconColor: '#00675f',
+    iconBg: '#d1faf5',
+    title: 'Follow the Results',
+    description:
+      'Check the Results page to see your optimized schedule. Each row tells you which item to put in your boutique at which hour — just follow it in the game!',
+    tip: 'Export to CSV and keep it open on your phone while you play.',
+  },
+]
+
+/* ════════════════════════════════════════════
+   Tutorial Modal
+   ════════════════════════════════════════════ */
+function TutorialModal({ onClose, shouldReduce }: { onClose: () => void; shouldReduce: boolean }) {
+  /* Close on Escape */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ delay, duration: 0.45 }}
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.97 }}
-      className="bg-[#ffecf5] hover:bg-[#ffdff2] rounded-2xl p-8 transition-colors
-                 duration-200 group cursor-default"
+      initial={shouldReduce ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6"
+      style={{ backgroundColor: 'rgba(70,34,62,0.55)', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Optimization Tutorial"
     >
-      <div
-        className="w-14 h-14 bg-white rounded-xl mb-6 flex items-center justify-center
-                   shadow-lg group-hover:scale-110 transition-transform duration-200"
-        style={{ boxShadow: `0 8px 24px rgba(176,46,122,0.20)` }}
+      <motion.div
+        initial={shouldReduce ? false : { opacity: 0, scale: 0.9, y: 32 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 32 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-[2rem] shadow-[0_32px_80px_rgba(70,34,62,0.25)]
+                   w-full max-w-2xl max-h-[90vh] overflow-y-auto border-t-8 border-[#ff6cb5]"
       >
-        <Icon className="w-7 h-7" style={{ color: iconColor }} aria-hidden="true" />
-      </div>
-      <h3
-        className="text-xl font-black text-[#46223e] mb-3"
-        style={{ fontFamily: 'var(--font-headline)' }}
-      >
-        {title}
-      </h3>
-      <p className="text-[#784e6c] font-medium text-sm leading-relaxed">{desc}</p>
+        {/* Header */}
+        <div className="flex items-start justify-between px-8 pt-8 pb-4">
+          <div>
+            <div
+              className="inline-flex items-center gap-2 bg-[#ffdff2] text-[#B02E7A]
+                          px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest mb-3"
+              style={{ fontFamily: 'var(--font-headline)' }}
+            >
+              <Sparkles className="w-3 h-3" aria-hidden="true" />
+              How to Use
+            </div>
+            <h2
+              className="text-2xl md:text-3xl font-black text-[#46223e] leading-tight"
+              style={{ fontFamily: 'var(--font-headline)' }}
+            >
+              Optimization Guide
+            </h2>
+            <p className="text-[#784e6c] text-sm font-medium mt-1">
+              Follow these 4 steps to get the best Fashion Story schedule.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close tutorial"
+            className="ml-4 shrink-0 mt-1 w-9 h-9 rounded-full bg-[#ffecf5] hover:bg-[#ffdff2]
+                       flex items-center justify-center text-[#784e6c] hover:text-[#B02E7A]
+                       transition-colors duration-150 cursor-pointer focus:outline-none
+                       focus:ring-2 focus:ring-[#B02E7A]/40"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="mx-8 h-px bg-[#ffecf5]" />
+
+        {/* Steps */}
+        <div className="px-8 py-6 space-y-4">
+          {TUTORIAL_STEPS.map((step, i) => {
+            const Icon = step.icon
+            return (
+              <motion.div
+                key={step.number}
+                initial={shouldReduce ? false : { opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 + i * 0.07, type: 'spring', stiffness: 300, damping: 22 }}
+                className="flex gap-4 bg-[#FFF5F8] rounded-2xl p-5 border border-[#ffecf5]"
+              >
+                {/* Step number + icon */}
+                <div className="shrink-0 flex flex-col items-center gap-2">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center shadow-sm"
+                    style={{ backgroundColor: step.iconBg }}
+                  >
+                    <Icon className="w-5 h-5" style={{ color: step.iconColor }} aria-hidden="true" />
+                  </div>
+                  <span
+                    className="text-[10px] font-black text-[#d09ec0] uppercase tracking-widest"
+                    style={{ fontFamily: 'var(--font-headline)' }}
+                  >
+                    {String(step.number).padStart(2, '0')}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <div className="min-w-0">
+                  <h3
+                    className="text-base font-black text-[#46223e] mb-1.5"
+                    style={{ fontFamily: 'var(--font-headline)' }}
+                  >
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-[#784e6c] font-medium leading-relaxed mb-2">
+                    {step.description}
+                  </p>
+                  <div className="flex items-start gap-1.5 bg-white rounded-xl px-3 py-2 border border-[#ffecf5]">
+                    <ChevronRight className="w-3.5 h-3.5 text-[#B02E7A] shrink-0 mt-0.5" aria-hidden="true" />
+                    <p className="text-xs text-[#966988] font-semibold leading-relaxed">
+                      {step.tip}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        {/* Footer CTA */}
+        <div className="px-8 pb-8">
+          <div className="bg-[#ffdff2] rounded-2xl px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm font-bold text-[#784e6c] text-center sm:text-left">
+              Ready to start? Set your schedule first.
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="bubblegum-gradient text-white px-6 py-2.5 rounded-full font-black
+                         text-sm shadow-[0_8px_20px_rgba(168,33,110,0.25)]
+                         hover:shadow-[0_12px_28px_rgba(168,33,110,0.35)]
+                         transition-shadow duration-200 cursor-pointer shrink-0
+                         focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/50"
+              style={{ fontFamily: 'var(--font-headline)' }}
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   )
 }
@@ -147,8 +291,9 @@ interface Props { onSignOut: () => void; onNavigate: (page: string) => void }
 export default function DashboardPage({ onSignOut, onNavigate }: Props) {
   const { profit, xp, gems, addProfit, addXp, addGems } = useShopStats()
   const { name: currentUserName } = useCurrentUser()
-  const seeded = useRef(false)
+  const seeded     = useRef(false)
   const shouldReduce = useReducedMotion() ?? false
+  const [tutorialOpen, setTutorialOpen] = useState(false)
 
   /* Seed store once on first mount */
   useEffect(() => {
@@ -161,45 +306,36 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
 
   /* Floating animation (respects reduced-motion) */
   const floatY = shouldReduce ? {} : { y: [0, -10, 0] as [number, number, number] }
-  const floatT  = { duration: 3.6, repeat: Infinity, ease: 'easeInOut' as const }
-  const hangT   = { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const, delay: 0.5 }
-  const starT   = { duration: 3.2, repeat: Infinity, ease: 'easeInOut' as const, delay: 1.1 }
+  const floatT = { duration: 3.6, repeat: Infinity, ease: 'easeInOut' as const }
+  const hangT  = { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const, delay: 0.5 }
+  const starT  = { duration: 3.2, repeat: Infinity, ease: 'easeInOut' as const, delay: 1.1 }
 
-  const navLinks = ['Home', 'Schedule', 'Optimizer', 'Results']
+  const navLinks       = ['Home', 'Schedule', 'Optimizer', 'Results']
   const mobileNavIcons = [Home, Calendar, Settings, BarChart2]
 
   const stats = [
-    { label: 'Profit',    value: profit, prefix: '$', delta: '+$1,240 today',       icon: TrendingUp, circleColor: '#f59e0b' },
-    { label: 'XP Gained', value: xp,     prefix: '',  delta: '+450 this session',    icon: Star,       circleColor: '#60a5fa' },
-    { label: 'Gems',      value: gems,   prefix: '',  delta: '+12 collected',         icon: Gem,        circleColor: '#f472b6' },
-  ]
-
-  const howCards = [
-    {
-      icon: Store,
-      title: 'Curate Stock',
-      desc: 'Choose from thousands of illustrated outfits to stock your shelves. Watch the trends closely!',
-      iconColor: '#B02E7A',
-    },
-    {
-      icon: Palette,
-      title: 'Decorate',
-      desc: 'Customize your floor plan with cute mannequins, racks, and wall art. Create a vibe that attracts icons.',
-      iconColor: '#9720ab',
-    },
-    {
-      icon: DollarSign,
-      title: 'Grow Profit',
-      desc: 'Reinvest your coins and gems into bigger stores and exclusive designer collaborations.',
-      iconColor: '#00675f',
-    },
+    { label: 'Profit',    value: profit, prefix: '$', delta: '+$1,240 today',    icon: TrendingUp, circleColor: '#f59e0b' },
+    { label: 'XP Gained', value: xp,     prefix: '',  delta: '+450 this session', icon: Star,       circleColor: '#60a5fa' },
+    { label: 'Gems',      value: gems,   prefix: '',  delta: '+12 collected',      icon: Gem,        circleColor: '#f472b6' },
   ]
 
   return (
     <div className="min-h-screen bg-[#FFF5F8] overflow-x-hidden">
 
       {/* ══════════════════════════════
-          NAVIGATION — backdrop-blur-xl
+          TUTORIAL MODAL
+          ══════════════════════════════ */}
+      <AnimatePresence>
+        {tutorialOpen && (
+          <TutorialModal
+            onClose={() => setTutorialOpen(false)}
+            shouldReduce={shouldReduce}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ══════════════════════════════
+          NAVIGATION
           ══════════════════════════════ */}
       <motion.nav
         initial={{ y: -72, opacity: 0 }}
@@ -236,7 +372,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                     link === 'Schedule'  ? (e) => { e.preventDefault(); onNavigate('scheduler') } :
                     link === 'Optimizer' ? (e) => { e.preventDefault(); onNavigate('optimizer') }  :
                     link === 'Results'   ? (e) => { e.preventDefault(); onNavigate('results') }    :
-                    undefined
+                    (e) => e.preventDefault()
                   }
                   className={`text-sm font-bold tracking-tight transition-all duration-150 focus:outline-none
                     focus:ring-2 focus:ring-[#B02E7A]/40 rounded px-1 py-0.5
@@ -310,11 +446,14 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                 <span className="text-[#B02E7A] italic">Dreams!</span>
               </h1>
               <p className="text-lg text-[#784e6c] font-medium max-w-md mb-10 leading-relaxed">
-                Manage the trendiest boutique in the city. Style icons, design your shop,
-                and climb the fashion ladder.
+                FashStOpt is a smart scheduler for the{' '}
+                <span className="font-black text-[#B02E7A]">Fashion Story</span> mobile game.
+                It uses optimization algorithms to find the best item-to-hour assignment
+                that maximizes your revenue, XP, and gems — so you can play smarter, not harder.
               </p>
               <div className="flex flex-wrap gap-4">
                 <motion.button
+                  onClick={() => onNavigate('optimizer')}
                   whileHover={shouldReduce ? {} : { scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
                   transition={SPRING}
@@ -323,9 +462,10 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                              focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/50"
                   style={{ fontFamily: 'var(--font-headline)' }}
                 >
-                  Open Your Shop
+                  Open Optimizer
                 </motion.button>
                 <motion.button
+                  onClick={() => setTutorialOpen(true)}
                   whileHover={shouldReduce ? {} : { scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
                   transition={SPRING}
@@ -339,25 +479,14 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
               </div>
             </motion.div>
 
-            {/* Right: floating boutique room image */}
+            {/* Right: floating boutique room illustration */}
             <div className="md:w-1/2 relative flex justify-center">
-
-              {/* Main floating circle (animate: y[0,-10,0] per spec) */}
-              <motion.div
-                animate={floatY}
-                transition={floatT}
-                className="w-72 h-72 lg:w-96 lg:h-96 relative"
-              >
+              <motion.div animate={floatY} transition={floatT} className="w-72 h-72 lg:w-96 lg:h-96 relative">
                 <div
                   className="w-full h-full rounded-full border-8 border-white shadow-2xl
-                             overflow-hidden flex flex-col items-center justify-center gap-3
-                             relative"
-                  style={{
-                    background:
-                      'linear-gradient(155deg, #ffdff2 0%, #fcbcff 45%, #56f1e0 100%)',
-                  }}
+                             overflow-hidden flex flex-col items-center justify-center gap-3 relative"
+                  style={{ background: 'linear-gradient(155deg, #ffdff2 0%, #fcbcff 45%, #56f1e0 100%)' }}
                 >
-                  {/* Decorative clothes rack art */}
                   <div className="flex gap-3">
                     {['#ff6cb5', '#fcbcff', '#56f1e0', '#B02E7A'].map((c, i) => (
                       <motion.div
@@ -370,9 +499,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                       />
                     ))}
                   </div>
-                  {/* Rack bar */}
                   <div className="w-40 h-1 bg-white/50 rounded-full" />
-                  {/* Second row */}
                   <div className="flex gap-2.5">
                     {['#9720ab', '#ff6cb5', '#56f1e0'].map((c, i) => (
                       <motion.div
@@ -389,7 +516,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                 </div>
               </motion.div>
 
-              {/* Floating hanger badge (top-right) */}
+              {/* Floating hanger badge */}
               <motion.div
                 animate={shouldReduce ? {} : { y: [0, -8, 0], rotate: [12, 15, 12] }}
                 transition={hangT}
@@ -401,7 +528,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                 <Shirt className="w-8 h-8 text-[#9720ab]" />
               </motion.div>
 
-              {/* Floating star badge (bottom-left) */}
+              {/* Floating star badge */}
               <motion.div
                 animate={shouldReduce ? {} : { y: [0, -12, 0], rotate: [-12, -15, -12] }}
                 transition={starT}
@@ -416,14 +543,9 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
           </div>
         </section>
 
-        {/* ── LAST RESULTS — Zustand-connected stat cards ── */}
-        <section
-          className="max-w-7xl mx-auto mb-20"
-          aria-label="Last results"
-        >
+        {/* ── LAST RESULTS ── */}
+        <section className="max-w-7xl mx-auto" aria-label="Last results">
           <div className="bg-[#ffdff2] rounded-[2rem] p-8 md:p-10">
-
-            {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
               <div>
                 <h2
@@ -439,7 +561,6 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
               </div>
             </div>
 
-            {/* Gamified stat cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {stats.map(({ label, value, prefix, delta, icon, circleColor }, i) => (
                 <StatCard
@@ -455,110 +576,6 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                 />
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ── HOW IT WORKS ── */}
-        <section className="max-w-7xl mx-auto mb-20" aria-label="How it works">
-          <motion.div
-            initial={shouldReduce ? false : { opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.4 }}
-            className="text-center mb-12"
-          >
-            <h2
-              className="text-4xl font-black text-[#46223e] mb-3"
-              style={{ fontFamily: 'var(--font-headline)' }}
-            >
-              How It Works
-            </h2>
-            <p className="text-[#784e6c] max-w-xl mx-auto text-base font-medium leading-relaxed">
-              Build your fashion empire in three simple steps. Every choice shapes the trend.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {howCards.map(({ icon, title, desc, iconColor }, i) => (
-              <HowCard
-                key={title}
-                icon={icon}
-                title={title}
-                desc={desc}
-                iconColor={iconColor}
-                delay={0.06 * i}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* ── FEATURE CARDS (Iconic Guests + Rare Unlocks) ── */}
-        <section className="max-w-7xl mx-auto" aria-label="Features">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            {/* Iconic Guests */}
-            <motion.div
-              initial={shouldReduce ? false : { opacity: 0, x: -24 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5 }}
-              whileHover={{ y: -4 }}
-              whileTap={{ scale: 0.98 }}
-              className="bg-[#fcbcff] rounded-[2rem] overflow-hidden min-h-72 relative
-                         group cursor-pointer"
-            >
-              {/* Background illustration */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 flex items-center justify-center opacity-15"
-              >
-                <User className="w-56 h-56 text-[#9720ab]" />
-              </div>
-              {/* Caption */}
-              <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-sm
-                              px-6 py-5 rounded-2xl border-2 border-[#f9a7ff] shadow-xl">
-                <h4
-                  className="text-xl font-black text-[#9720ab] mb-1"
-                  style={{ fontFamily: 'var(--font-headline)' }}
-                >
-                  Iconic Guests
-                </h4>
-                <p className="text-sm font-medium text-[#784e6c]">
-                  Unlock 50+ unique characters to shop at your boutique.
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Rare Unlocks */}
-            <motion.div
-              initial={shouldReduce ? false : { opacity: 0, x: 24 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5 }}
-              whileHover={{ y: -4 }}
-              whileTap={{ scale: 0.98 }}
-              className="bg-[#ffd7f0] rounded-[2rem] overflow-hidden min-h-72 relative
-                         group cursor-pointer"
-            >
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 flex items-center justify-center opacity-15"
-              >
-                <Shirt className="w-56 h-56 text-[#B02E7A]" />
-              </div>
-              <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-sm
-                              px-6 py-5 rounded-2xl border-2 border-[#ff6cb5] shadow-xl">
-                <h4
-                  className="text-xl font-black text-[#B02E7A] mb-1"
-                  style={{ fontFamily: 'var(--font-headline)' }}
-                >
-                  Rare Unlocks
-                </h4>
-                <p className="text-sm font-medium text-[#784e6c]">
-                  Collect rare mannequin heads and legendary clothing items.
-                </p>
-              </div>
-            </motion.div>
           </div>
         </section>
       </main>
@@ -594,7 +611,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
       </footer>
 
       {/* ══════════════════════════════
-          MOBILE BOTTOM NAV — floating pill
+          MOBILE BOTTOM NAV
           ══════════════════════════════ */}
       <div
         className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
