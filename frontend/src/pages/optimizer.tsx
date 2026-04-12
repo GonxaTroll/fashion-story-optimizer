@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useCurrentUser } from '@/hooks/use-current-user'
 import { flushSync } from 'react-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
@@ -263,6 +264,7 @@ interface Props {
 }
 
 export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
+  const { name: currentUserName } = useCurrentUser()
   /* Optimizer controls */
   const [orderFull, setOrderFull]     = useState(true)
   const [sameHour, setSameHour]       = useState(false)
@@ -476,7 +478,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                            focus:ring-2 focus:ring-[#B02E7A]/40"
               >
                 <User className="w-3.5 h-3.5 text-[#B02E7A]" aria-hidden="true" />
-                Admin
+                {currentUserName || '…'}
               </motion.button>
               <motion.button
                 onClick={onSignOut}

@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, Fragment, useState } from 'react'
+import { useCurrentUser } from '@/hooks/use-current-user'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
@@ -50,6 +51,7 @@ const INFO_CARDS = [
 interface Props { onSignOut: () => void; onNavigate: (page: string) => void }
 
 export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
+  const { name: currentUserName } = useCurrentUser()
   const { grid, saving, toggleCell, setCells, resetGrid, saveGrid, loadGrid } = useScheduler()
   const shouldReduce = useReducedMotion() ?? false
 
@@ -176,7 +178,7 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
                            focus:ring-2 focus:ring-[#B02E7A]/40"
               >
                 <User className="w-3.5 h-3.5 text-[#B02E7A]" aria-hidden="true" />
-                Admin
+                {currentUserName || '…'}
               </motion.button>
               <motion.button
                 onClick={onSignOut}

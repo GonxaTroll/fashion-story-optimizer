@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { User, Eye, EyeOff, ChevronDown } from 'lucide-react'
 import {
@@ -13,6 +13,13 @@ import {
   Bell, Moon, Heart, Lock, LogOut,
 } from '@/components/glimmer/optimizer-ui'
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
+function authHeaders() {
+  const token = localStorage.getItem('auth_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 interface AccountTabProps {
   onSignOut: () => void
 }
@@ -21,10 +28,11 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
   const shouldReduce = useReducedMotion() ?? false
 
   /* Profile */
-  const [name, setName]               = useState('Admin')
-  const [boutiqueName, setBoutiqueName] = useState('Glimmer HQ')
+  const [name, setName]               = useState('')
+  const [boutiqueName, setBoutiqueName] = useState('')
   const [bio, setBio]                  = useState('')
   const [saving, setSaving]            = useState(false)
+  const [loadError, setLoadError]      = useState('')
   const profileSaved                   = useSaved()
 
   /* Preferences */
@@ -39,29 +47,97 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
   const [pwOpen, setPwOpen]           = useState(false)
   const [currentPw, setCurrentPw]     = useState('')
   const [newPw, setNewPw]             = useState('')
+  const [pwError, setPwError]         = useState('')
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew]         = useState(false)
   const [pwSaving, setPwSaving]       = useState(false)
   const pwSaved = useSaved()
 
-  const handleUpdateProfile = () => {
-    if (saving) return
-    setSaving(true)
-    setTimeout(() => { setSaving(false); profileSaved.trigger() }, 1300)
+  /* ── Fetch user on mount ── */
+  useEffect(() => {
+    fetch(`${API_BASE}/auth/me`, { headers: authHeaders() })
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to load profile')
+        return r.json()
+      })
+      .then((data) => {
+        setName(data.name ?? '')
+        setBoutiqueName(data.boutique_name ?? '')
+        setBio(data.bio ?? '')
+        setNotifications(data.notifications ?? true)
+        setDarkMode(data.dark_mode ?? false)
+        setStayPlayful(data.stay_playful ?? true)
+      })
+      .catch(() => setLoadError('Could not load your profile. Please refresh.'))
+  }, [])
+
+  /* ── Patch helper ── */
+  async function patchMe(fields: Record<string, unknown>) {
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(fields),
+    })
+    if (!res.ok) throw new Error('Save failed')
+    return res.json()
   }
 
-  const handleSavePw = () => {
+  const handleUpdateProfile = async () => {
+    if (saving) return
+    setSaving(true)
+    try {
+      await patchMe({ name, boutique_name: boutiqueName, bio })
+      profileSaved.trigger()
+    } catch {
+      // surface nothing — user can retry
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSavePw = async () => {
     if (!currentPw || !newPw || pwSaving) return
+    setPwError('')
     setPwSaving(true)
-    setTimeout(() => {
-      setPwSaving(false); setCurrentPw(''); setNewPw(''); setPwOpen(false); pwSaved.trigger()
-    }, 1200)
+    try {
+      const res = await fetch(`${API_BASE}/auth/password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setPwError(data?.detail ?? 'Could not update password.')
+        return
+      }
+      setCurrentPw('')
+      setNewPw('')
+      setPwOpen(false)
+      pwSaved.trigger()
+    } catch {
+      setPwError('Could not reach the server.')
+    } finally {
+      setPwSaving(false)
+    }
   }
 
   const handleToggle = (
     setter: (v: boolean) => void,
+    field: string,
     savedHook: ReturnType<typeof useSaved>,
-  ) => (v: boolean) => { setter(v); savedHook.trigger() }
+  ) => (v: boolean) => {
+    setter(v)
+    patchMe({ [field]: v }).catch(() => {})
+    savedHook.trigger()
+  }
+
+  if (loadError) {
+    return (
+      <p className="text-sm font-semibold text-[#b41340] bg-[#fff0f4] border border-[#f74b6d]/20 rounded-xl px-4 py-3">
+        {loadError}
+      </p>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -80,7 +156,7 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
               }}
               aria-label={`Avatar for ${name}`}
             >
-              {name.charAt(0).toUpperCase()}
+              {name.charAt(0).toUpperCase() || '?'}
             </div>
             <button
               type="button"
@@ -99,9 +175,9 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
           </div>
           <div>
             <p className="text-sm font-black text-[#46223e]" style={{ fontFamily: 'var(--font-headline)' }}>
-              {name || 'Admin'}
+              {name || '—'}
             </p>
-            <p className="text-xs text-[#966988] font-medium">Boutique Owner · Admin</p>
+            <p className="text-xs text-[#966988] font-medium">{boutiqueName || 'Boutique Owner'}</p>
           </div>
         </div>
 
@@ -139,7 +215,7 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
           saved={notifSaved.saved}
           control={
             <BouncyToggle id="toggle-notif" label="Toggle notifications"
-              checked={notifications} onChange={handleToggle(setNotifications, notifSaved)} />
+              checked={notifications} onChange={handleToggle(setNotifications, 'notifications', notifSaved)} />
           }
         />
         <SettingRow
@@ -148,7 +224,7 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
           saved={darkSaved.saved}
           control={
             <BouncyToggle id="toggle-dark" label="Toggle light mode"
-              checked={!darkMode} onChange={(v) => handleToggle(setDarkMode, darkSaved)(!v)} />
+              checked={!darkMode} onChange={(v) => handleToggle(setDarkMode, 'dark_mode', darkSaved)(!v)} />
           }
         />
         <SettingRow
@@ -158,7 +234,7 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
           last
           control={
             <BouncyToggle id="toggle-play" label="Toggle stay playful"
-              checked={stayPlayful} onChange={handleToggle(setStayPlayful, playSaved)} />
+              checked={stayPlayful} onChange={handleToggle(setStayPlayful, 'stay_playful', playSaved)} />
           }
         />
       </SectionCard>
@@ -227,12 +303,17 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
                       </button>
                     }
                   />
+                  {pwError && (
+                    <p className="text-xs font-semibold text-[#b41340] bg-[#fff0f4] border border-[#f74b6d]/20 rounded-xl px-4 py-2.5">
+                      {pwError}
+                    </p>
+                  )}
                   <div className="flex items-center gap-3 pt-1">
                     <ShimmerButton onClick={handleSavePw} disabled={!currentPw || !newPw || pwSaving}>
                       {pwSaving ? 'Saving…' : 'Save Password'}
                     </ShimmerButton>
                     <button type="button"
-                      onClick={() => { setPwOpen(false); setCurrentPw(''); setNewPw('') }}
+                      onClick={() => { setPwOpen(false); setCurrentPw(''); setNewPw(''); setPwError('') }}
                       className="text-xs font-bold text-[#966988] hover:text-[#46223e] transition-colors
                                  duration-150 cursor-pointer px-3 py-2 focus:outline-none
                                  focus:ring-1 focus:ring-[#966988] rounded-lg">

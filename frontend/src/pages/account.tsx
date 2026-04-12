@@ -1,7 +1,10 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles, User, LogOut, Home, Calendar, Settings } from 'lucide-react'
 import AccountTab from '@/components/AccountTab'
 import { SPRING } from '@/components/glimmer/optimizer-ui'
+
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 interface Props {
   onSignOut: () => void
@@ -12,6 +15,17 @@ const navLinks       = ['Home', 'Schedule', 'Optimizer', 'Account']
 const mobileNavIcons = [Home, Calendar, Settings, User]
 
 export default function AccountPage({ onSignOut, onNavigate }: Props) {
+  const [userName, setUserName] = useState('')
+
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token')
+    if (!token) return
+    fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.name) setUserName(data.name) })
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#FFF5F8] overflow-x-hidden">
 
@@ -79,7 +93,7 @@ export default function AccountPage({ onSignOut, onNavigate }: Props) {
                            cursor-default focus:outline-none"
               >
                 <User className="w-3.5 h-3.5 text-[#B02E7A]" aria-hidden="true" />
-                Admin
+                {userName || '…'}
               </motion.button>
               <motion.button
                 onClick={onSignOut}

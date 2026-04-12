@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useCurrentUser } from '@/hooks/use-current-user'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
@@ -145,6 +146,7 @@ interface Props { onSignOut: () => void; onNavigate: (page: string) => void }
 
 export default function DashboardPage({ onSignOut, onNavigate }: Props) {
   const { profit, xp, gems, addProfit, addXp, addGems } = useShopStats()
+  const { name: currentUserName } = useCurrentUser()
   const seeded = useRef(false)
   const shouldReduce = useReducedMotion() ?? false
 
@@ -262,7 +264,7 @@ export default function DashboardPage({ onSignOut, onNavigate }: Props) {
                            focus:ring-2 focus:ring-[#B02E7A]/40"
               >
                 <User className="w-3.5 h-3.5 text-[#B02E7A]" aria-hidden="true" />
-                Admin
+                {currentUserName || '…'}
               </motion.button>
               <motion.button
                 onClick={onSignOut}

@@ -31,6 +31,20 @@ class UserResponse(BaseModel):
     stay_playful: bool
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+
+class ProfileUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1)
+    boutique_name: str | None = Field(default=None, min_length=1)
+    bio: str | None = None
+    notifications: bool | None = None
+    dark_mode: bool | None = None
+    stay_playful: bool | None = None
+
+
 class ScheduleUpdateRequest(BaseModel):
     grid: list[list[bool]]  # grid[hour][day], hour 0-23, day 0=Mon … 6=Sun
 

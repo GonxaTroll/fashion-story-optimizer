@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import SignInPage from '@/pages/sign-in'
+import SignUpPage from '@/pages/sign-up'
 import DashboardPage from '@/pages/dashboard'
 import OptimizerPage from '@/pages/optimizer'
 import SchedulerPage from '@/pages/scheduler'
 import AccountPage from '@/pages/account'
 import ResultsPage from '@/pages/results'
 
-export type Page = 'signin' | 'dashboard' | 'optimizer' | 'scheduler' | 'account' | 'results'
+export type Page = 'signin' | 'signup' | 'dashboard' | 'optimizer' | 'scheduler' | 'account' | 'results'
 
 function App() {
   const [page, setPage] = useState<Page>('signin')
@@ -51,7 +52,15 @@ function App() {
       />
     )
 
-  return <SignInPage onSignIn={() => setPage('dashboard')} />
+  if (page === 'signup')
+    return (
+      <SignUpPage
+        onSignUp={() => setPage('dashboard')}
+        onGoToSignIn={() => setPage('signin')}
+      />
+    )
+
+  return <SignInPage onSignIn={() => setPage('dashboard')} onGoToSignUp={() => setPage('signup')} />
 }
 
 export default App

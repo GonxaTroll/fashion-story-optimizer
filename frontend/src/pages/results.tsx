@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useCurrentUser } from '@/hooks/use-current-user'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   Sparkles, LogOut, Home, Calendar, Settings, BarChart2,
@@ -253,6 +254,7 @@ function TimelineCard({ item, hourCount, delay, shouldReduce }: {
 interface Props { onSignOut: () => void; onNavigate: (page: string) => void }
 
 export default function ResultsPage({ onSignOut, onNavigate }: Props) {
+  const { name: currentUserName } = useCurrentUser()
   const [view, setView]               = useState<'visual' | 'table'>('visual')
   const [loading, setLoading]         = useState(true)
   const [optimizedAt, setOptimizedAt] = useState<string | null>(null)
@@ -366,7 +368,7 @@ export default function ResultsPage({ onSignOut, onNavigate }: Props) {
                            focus:ring-2 focus:ring-[#B02E7A]/40"
               >
                 <User className="w-3.5 h-3.5 text-[#B02E7A]" aria-hidden="true" />
-                Admin
+                {currentUserName || '…'}
               </motion.button>
               <motion.button
                 onClick={onSignOut}

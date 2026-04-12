@@ -1,22 +1,22 @@
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, Zap } from 'lucide-react'
-
-/* ─── Admin credentials (demo) ─── */
-const DEMO = { email: 'admin@fashstopt.com', password: 'admin1234' }
+import { Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, User, Store } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 interface Props {
-  onSignIn: () => void
-  onGoToSignUp: () => void
+  onSignUp: () => void
+  onGoToSignIn: () => void
 }
 
-export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
+export default function SignUpPage({ onSignUp, onGoToSignIn }: Props) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [name, setName] = useState('')
+  const [boutiqueName, setBoutiqueName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const shouldReduce = useReducedMotion()
@@ -24,34 +24,42 @@ export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
   const springCard = { type: 'spring', stiffness: 260, damping: 22, delay: 0.05 } as const
   const springBtn  = { type: 'spring', stiffness: 400, damping: 15 } as const
 
-  const quickFill = () => {
-    setEmail(DEMO.email)
-    setPassword(DEMO.password)
-    setError('')
-  }
-
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault()
     if (loading) return
     setError('')
-    setLoading(true)
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+
+    setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await fetch(`${API_BASE}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+          boutique_name: boutiqueName,
+        }),
       })
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setError(data?.detail ?? 'Incorrect email or password.')
+        setError(data?.detail ?? 'Could not create account. Please try again.')
         return
       }
 
       const { access_token } = await res.json()
       localStorage.setItem('auth_token', access_token)
-      onSignIn()
+      onSignUp()
     } catch {
       setError('Could not reach the server. Please try again.')
     } finally {
@@ -68,40 +76,8 @@ export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
         <div className="absolute -bottom-16 -right-8 w-56 h-56 rounded-full bg-[#fcbcff] opacity-25 blur-3xl" />
       </div>
 
-      {/* Demo credentials badge */}
-      <motion.div
-        initial={shouldReduce ? false : { opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.35 }}
-        className="relative z-10 mb-5 w-full max-w-md"
-      >
-        <div className="bg-[#edfff9] border border-[#56f1e0]/60 rounded-2xl px-5 py-3.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="shrink-0 w-7 h-7 rounded-lg bg-[#56f1e0]/30 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-[#00675f]" aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold text-[#00675f] uppercase tracking-widest leading-none mb-0.5">
-                Demo access
-              </p>
-              <p className="text-xs text-[#46223e]/70 truncate font-mono">
-                {DEMO.email} · {DEMO.password}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={quickFill}
-            className="shrink-0 text-xs font-bold text-[#00675f] bg-[#56f1e0]/30 hover:bg-[#56f1e0]/50 rounded-xl px-3 py-1.5 transition-colors duration-150 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#56f1e0]"
-          >
-            Quick fill
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Sign-in card */}
+      {/* Sign-up card */}
       <main className="w-full max-w-md relative z-10">
-
         <motion.div
           initial={shouldReduce ? false : { opacity: 0, scale: 0.88, y: 24 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -126,21 +102,54 @@ export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
             >
               FashStOpt
             </h1>
-            <p className="text-[#784e6c] font-medium text-sm mt-1">
-              Fashion Story Optimizer
-            </p>
-            <p className="text-[#966988] text-xs mt-0.5">Welcome back, gorgeous!</p>
+            <p className="text-[#784e6c] font-medium text-sm mt-1">Fashion Story Optimizer</p>
+            <p className="text-[#966988] text-xs mt-0.5">Create your boutique account!</p>
           </div>
 
           {/* Form */}
-          <form className="px-8 pb-2 space-y-5" onSubmit={handleSubmit} noValidate>
+          <form className="px-8 pb-2 space-y-4" onSubmit={handleSubmit} noValidate>
+
+            {/* Name */}
+            <div className="space-y-1.5">
+              <label htmlFor="name" className="flex items-center gap-1.5 text-xs font-bold text-[#784e6c] ml-1">
+                <User className="w-3 h-3" aria-hidden="true" />
+                Your Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                autoComplete="name"
+                placeholder="Jane Doe"
+                value={name}
+                onChange={(e) => { setName(e.target.value); setError('') }}
+                disabled={loading}
+                required
+                className="w-full bg-[#ffecf5] border-2 border-transparent rounded-2xl px-5 py-3.5 text-[#46223e] placeholder:text-[#d09ec0] focus:outline-none focus:border-[#B02E7A]/30 focus:ring-0 soft-well transition-all duration-150 text-sm disabled:opacity-50 cursor-text"
+              />
+            </div>
+
+            {/* Boutique name */}
+            <div className="space-y-1.5">
+              <label htmlFor="boutique_name" className="flex items-center gap-1.5 text-xs font-bold text-[#784e6c] ml-1">
+                <Store className="w-3 h-3" aria-hidden="true" />
+                Boutique Name
+              </label>
+              <input
+                id="boutique_name"
+                type="text"
+                autoComplete="organization"
+                placeholder="Glimmer Boutique"
+                value={boutiqueName}
+                onChange={(e) => { setBoutiqueName(e.target.value); setError('') }}
+                disabled={loading}
+                required
+                className="w-full bg-[#ffecf5] border-2 border-transparent rounded-2xl px-5 py-3.5 text-[#46223e] placeholder:text-[#d09ec0] focus:outline-none focus:border-[#B02E7A]/30 focus:ring-0 soft-well transition-all duration-150 text-sm disabled:opacity-50 cursor-text"
+              />
+            </div>
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label
-                htmlFor="email"
-                className="flex items-center gap-1.5 text-xs font-bold text-[#784e6c] ml-1"
-              >
+              <label htmlFor="email" className="flex items-center gap-1.5 text-xs font-bold text-[#784e6c] ml-1">
                 <Mail className="w-3 h-3" aria-hidden="true" />
                 Email Address
               </label>
@@ -152,36 +161,27 @@ export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError('') }}
                 disabled={loading}
+                required
                 className="w-full bg-[#ffecf5] border-2 border-transparent rounded-2xl px-5 py-3.5 text-[#46223e] placeholder:text-[#d09ec0] focus:outline-none focus:border-[#B02E7A]/30 focus:ring-0 soft-well transition-all duration-150 text-sm disabled:opacity-50 cursor-text"
               />
             </div>
 
             {/* Password */}
             <div className="space-y-1.5">
-              <div className="flex justify-between items-center ml-1">
-                <label
-                  htmlFor="password"
-                  className="flex items-center gap-1.5 text-xs font-bold text-[#784e6c]"
-                >
-                  <Lock className="w-3 h-3" aria-hidden="true" />
-                  Password
-                </label>
-                <a
-                  href="#"
-                  className="text-xs font-bold text-[#9720ab] hover:underline underline-offset-2 focus:outline-none focus:ring-1 focus:ring-[#9720ab] rounded"
-                >
-                  Forgot?
-                </a>
-              </div>
+              <label htmlFor="password" className="flex items-center gap-1.5 text-xs font-bold text-[#784e6c] ml-1">
+                <Lock className="w-3 h-3" aria-hidden="true" />
+                Password
+              </label>
               <div className="relative">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  placeholder="Min 8 characters"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError('') }}
                   disabled={loading}
+                  required
                   className="w-full bg-[#ffecf5] border-2 border-transparent rounded-2xl px-5 py-3.5 pr-12 text-[#46223e] placeholder:text-[#d09ec0] focus:outline-none focus:border-[#B02E7A]/30 focus:ring-0 soft-well transition-all duration-150 text-sm disabled:opacity-50 cursor-text"
                 />
                 <button
@@ -197,6 +197,44 @@ export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
               </div>
             </div>
 
+            {/* Confirm Password */}
+            <div className="space-y-1.5">
+              <label htmlFor="confirm_password" className="flex items-center gap-1.5 text-xs font-bold text-[#784e6c] ml-1">
+                <Lock className="w-3 h-3" aria-hidden="true" />
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  id="confirm_password"
+                  type={showConfirm ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="Repeat your password"
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setError('') }}
+                  disabled={loading}
+                  required
+                  className={`w-full bg-[#ffecf5] border-2 rounded-2xl px-5 py-3.5 pr-12 text-[#46223e] placeholder:text-[#d09ec0] focus:outline-none focus:ring-0 soft-well transition-all duration-150 text-sm disabled:opacity-50 cursor-text ${
+                    confirmPassword && confirmPassword !== password
+                      ? 'border-[#f74b6d]/50'
+                      : 'border-transparent focus:border-[#B02E7A]/30'
+                  }`}
+                />
+                <button
+                  type="button"
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#966988] hover:text-[#B02E7A] transition-colors duration-150 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#B02E7A] rounded"
+                >
+                  {showConfirm
+                    ? <EyeOff className="w-4 h-4" aria-hidden="true" />
+                    : <Eye className="w-4 h-4" aria-hidden="true" />}
+                </button>
+              </div>
+              {confirmPassword && confirmPassword !== password && (
+                <p className="text-[10px] font-semibold text-[#b41340] ml-1">Passwords do not match</p>
+              )}
+            </div>
+
             {/* Error message */}
             {error && (
               <motion.p
@@ -209,28 +247,6 @@ export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
                 {error}
               </motion.p>
             )}
-
-            {/* Remember me */}
-            <div className="flex items-center gap-3 px-1">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={rememberMe}
-                onClick={() => setRememberMe((v) => !v)}
-                className={`relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/40 focus:ring-offset-1 ${
-                  rememberMe ? 'bg-[#9720ab]' : 'bg-[#ffd7f0]'
-                }`}
-              >
-                <span
-                  className={`absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                    rememberMe ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-              <span className="text-sm font-medium text-[#784e6c] select-none">
-                Stay playful (Remember me)
-              </span>
-            </div>
 
             {/* CTA button */}
             <motion.button
@@ -254,11 +270,11 @@ export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  Signing in…
+                  Creating account…
                 </>
               ) : (
                 <>
-                  Sign In
+                  Create Account
                   <ArrowRight className="w-5 h-5" aria-hidden="true" />
                 </>
               )}
@@ -268,13 +284,13 @@ export default function SignInPage({ onSignIn, onGoToSignUp }: Props) {
           {/* Footer strip */}
           <div className="bg-[#ffecf5]/50 px-8 py-5 mt-5 text-center">
             <p className="text-sm font-medium text-[#784e6c]">
-              New to FashStOpt?{' '}
+              Already have an account?{' '}
               <button
                 type="button"
-                onClick={onGoToSignUp}
+                onClick={onGoToSignIn}
                 className="text-[#B02E7A] font-bold hover:underline underline-offset-2 ml-0.5 focus:outline-none focus:ring-1 focus:ring-[#B02E7A] rounded cursor-pointer"
               >
-                Create an account
+                Sign in
               </button>
             </p>
           </div>
