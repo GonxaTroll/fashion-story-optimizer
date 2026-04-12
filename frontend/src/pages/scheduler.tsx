@@ -264,64 +264,96 @@ export default function SchedulerPage({ onSignOut, onNavigate }: Props) {
               initial={shouldReduce ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.15 }}
-              className="bg-[#ffecf5] rounded-2xl p-4 md:p-8 shadow-sm overflow-x-auto"
+              className="bg-[#ffecf5] rounded-2xl p-4 md:p-6 shadow-sm overflow-x-auto"
             >
-              <div
-                className="grid gap-1.5 min-w-[480px]"
-                style={{ gridTemplateColumns: 'auto repeat(7, 1fr)', touchAction: 'none' }}
-              >
-                {/* ── Header row ── */}
-                <div className="h-10 flex items-center justify-center text-xs font-bold text-[#966988] uppercase tracking-widest">
-                  Time
-                </div>
-                {DAYS.map((day) => (
-                  <div
-                    key={day}
-                    className="h-10 flex items-center justify-center font-black text-sm text-[#46223e]"
-                    style={{ fontFamily: 'var(--font-headline)' }}
-                  >
-                    {day}
-                  </div>
-                ))}
+              {/* shared column template: fixed 3.5rem time column + 7 equal day columns */}
+              {(() => {
+                const cols = '3.5rem repeat(7, 1fr)'
+                /* row height + gap: h-10 = 40px, gap-1.5 = 6px → 6 rows = 270px */
+                const SCROLL_H = 6 * 40 + 5 * 6
 
-                {/* ── 24 time rows ── */}
-                {HOURS.map((timeLabel, hour) => (
-                  <Fragment key={hour}>
-                    {/* Time label */}
-                    <div className="flex items-center justify-end pr-3 text-xs font-bold text-[#784e6c] h-10 tabular-nums">
-                      {timeLabel}
-                    </div>
-                    {/* 7 day cells */}
-                    {Array.from({ length: 7 }, (_, day) => {
-                      const isAvailable = grid[hour][day]
-                      return (
-                        <motion.div
+                return (
+                  <div className="min-w-[480px]" style={{ touchAction: 'none' }}>
+
+                    {/* ── Sticky day-label header ── */}
+                    <div
+                      className="grid gap-x-1.5 mb-1.5 sticky top-0 z-10 bg-[#ffecf5] pb-1"
+                      style={{ gridTemplateColumns: cols }}
+                    >
+                      <div className="h-10 flex items-center justify-center text-xs font-bold text-[#966988] uppercase tracking-widest">
+                        Time
+                      </div>
+                      {DAYS.map((day) => (
+                        <div
                           key={day}
-                          whileTap={shouldReduce ? undefined : { scale: 0.88 }}
-                          transition={CELL_SPRING}
-                          onPointerDown={() => handleCellPointerDown(hour, day)}
-                          onPointerEnter={() => handleCellPointerEnter(hour, day)}
-                          onKeyDown={(e) => {
-                            if (e.key === ' ' || e.key === 'Enter') {
-                              e.preventDefault()
-                              toggleCell(hour, day)
-                            }
-                          }}
-                          role="button"
-                          aria-pressed={isAvailable}
-                          aria-label={`${timeLabel} ${DAYS[day]}: ${isAvailable ? 'Available' : 'Busy'}`}
-                          tabIndex={0}
-                          className={`h-10 rounded-lg cursor-pointer select-none transition-colors duration-150
-                            focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/40
-                            ${isAvailable
-                              ? 'bg-[#B02E7A] hover:bg-[#9e2870] shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)]'
-                              : 'bg-[#FFF0F5] hover:bg-[#FFD6E7]'}`}
-                        />
-                      )
-                    })}
-                  </Fragment>
-                ))}
-              </div>
+                          className="h-10 flex items-center justify-center font-black text-sm text-[#46223e]"
+                          style={{ fontFamily: 'var(--font-headline)' }}
+                        >
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ── Scrollable rows (6 visible at a time) ── */}
+                    <div className="relative">
+                      {/* top fade */}
+                      <div className="pointer-events-none absolute top-0 left-0 right-0 h-4 z-10
+                                      bg-gradient-to-b from-[#ffecf5] to-transparent" aria-hidden="true" />
+                      {/* bottom fade */}
+                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 z-10
+                                      bg-gradient-to-t from-[#ffecf5] to-transparent" aria-hidden="true" />
+
+                      <div
+                        className="overflow-y-auto scrollbar-thin"
+                        style={{ height: `${SCROLL_H}px` }}
+                      >
+                        <div
+                          className="grid gap-1.5"
+                          style={{ gridTemplateColumns: cols }}
+                        >
+                          {HOURS.map((timeLabel, hour) => (
+                            <Fragment key={hour}>
+                              {/* Time label */}
+                              <div className="flex items-center justify-end pr-2 text-xs font-bold text-[#784e6c] h-10 tabular-nums">
+                                {timeLabel}
+                              </div>
+                              {/* 7 day cells */}
+                              {Array.from({ length: 7 }, (_, day) => {
+                                const isAvailable = grid[hour][day]
+                                return (
+                                  <motion.div
+                                    key={day}
+                                    whileTap={shouldReduce ? undefined : { scale: 0.88 }}
+                                    transition={CELL_SPRING}
+                                    onPointerDown={() => handleCellPointerDown(hour, day)}
+                                    onPointerEnter={() => handleCellPointerEnter(hour, day)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === ' ' || e.key === 'Enter') {
+                                        e.preventDefault()
+                                        toggleCell(hour, day)
+                                      }
+                                    }}
+                                    role="button"
+                                    aria-pressed={isAvailable}
+                                    aria-label={`${timeLabel} ${DAYS[day]}: ${isAvailable ? 'Available' : 'Busy'}`}
+                                    tabIndex={0}
+                                    className={`h-10 rounded-lg cursor-pointer select-none transition-colors duration-150
+                                      focus:outline-none focus:ring-2 focus:ring-[#B02E7A]/40
+                                      ${isAvailable
+                                        ? 'bg-[#B02E7A] hover:bg-[#9e2870] shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)]'
+                                        : 'bg-[#FFF0F5] hover:bg-[#FFD6E7]'}`}
+                                  />
+                                )
+                              })}
+                            </Fragment>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                )
+              })()}
             </motion.div>
 
             {/* ── LEGEND + ACTIONS ── */}
