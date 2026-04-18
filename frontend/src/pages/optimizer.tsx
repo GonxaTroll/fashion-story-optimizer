@@ -96,68 +96,132 @@ function SegmentedControl({ value, onChange }: { value: Goal[]; onChange: (g: Go
 /* ════════════════════════════════════════
    SLOT COUNTER — +/- pill counter with keyboard input
    ════════════════════════════════════════ */
-function SlotCounter({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+function SlotCounter({ value, onChange, max = 99 }: { value: number; onChange: (n: number) => void; max?: number }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const [atMax, setAtMax] = useState(false)
+
+  const commit = (raw: string) => {
+    const n = parseInt(raw, 10)
+    if (!isNaN(n)) {
+      const clamped = Math.min(max, Math.max(1, n))
+      onChange(clamped)
+      if (clamped === max) { setAtMax(true); setTimeout(() => setAtMax(false), 1800) }
+    }
+    setDraft(null)
+  }
+
+  const increment = () => {
+    if (value >= max) { setAtMax(true); setTimeout(() => setAtMax(false), 1800); return }
+    onChange(Math.min(max, value + 1))
+  }
+
+  return (
+    <div className="flex flex-col gap-1 mt-1">
+      <div className="flex items-center gap-2">
+        <motion.button
+          type="button"
+          onClick={() => onChange(Math.max(1, value - 1))}
+          whileHover={{ scale: 1.12 }}
+          whileTap={{ scale: 0.88 }}
+          transition={SPRING}
+          aria-label="Decrease item slots"
+          className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
+                     flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                     transition-colors duration-200 cursor-pointer focus:outline-none
+                     focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
+        >
+          −
+        </motion.button>
+        <motion.div
+          key={value}
+          initial={{ scale: 0.8, opacity: 0.6 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={SPRING}
+          className="flex-1 h-9 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner"
+        >
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={draft ?? value}
+            onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
+            onBlur={(e) => commit(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+            }}
+            aria-label="Item slots"
+            className="w-full text-center bg-transparent font-black text-lg text-[#46223e]
+                       focus:outline-none caret-[#B02E7A] select-all"
+            style={{ fontFamily: 'var(--font-headline)' }}
+          />
+        </motion.div>
+        <motion.button
+          type="button"
+          onClick={increment}
+          whileHover={{ scale: 1.12 }}
+          whileTap={{ scale: 0.88 }}
+          transition={SPRING}
+          aria-label="Increase item slots"
+          className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
+                     flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                     transition-colors duration-200 cursor-pointer focus:outline-none
+                     focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
+        >
+          +
+        </motion.button>
+      </div>
+      {atMax && (
+        <motion.p
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={SPRING}
+          className="text-center text-[10px] font-bold text-[#B02E7A]"
+        >
+          Max {max} slots
+        </motion.p>
+      )}
+    </div>
+  )
+}
+
+/* ════════════════════════════════════════
+   MAX COPIES INPUT — draft-state text input inside the Repeat Items card
+   ════════════════════════════════════════ */
+function MaxCopiesInput({ value, onChange, max }: { value: number | null; onChange: (n: number | null) => void; max: number }) {
   const [draft, setDraft] = useState<string | null>(null)
 
   const commit = (raw: string) => {
     const n = parseInt(raw, 10)
-    if (!isNaN(n)) onChange(Math.min(99, Math.max(1, n)))
+    if (!isNaN(n) && n >= 1) onChange(Math.min(max, n))
+    else if (value !== null) onChange(value) // revert to last valid
     setDraft(null)
   }
 
+  if (value === null) {
+    return (
+      <div className="w-16 h-8 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner">
+        <span className="font-black text-lg text-[#B02E7A]" style={{ fontFamily: 'var(--font-headline)' }}>∞</span>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex items-center gap-2 mt-1">
-      <motion.button
-        type="button"
-        onClick={() => onChange(Math.max(1, value - 1))}
-        whileHover={{ scale: 1.12 }}
-        whileTap={{ scale: 0.88 }}
-        transition={SPRING}
-        aria-label="Decrease item slots"
-        className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
-                   flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
-                   transition-colors duration-200 cursor-pointer focus:outline-none
-                   focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
-      >
-        −
-      </motion.button>
-      <motion.div
-        key={value}
-        initial={{ scale: 0.8, opacity: 0.6 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={SPRING}
-        className="flex-1 h-9 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner"
-      >
-        <input
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={draft ?? value}
-          onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
-          onBlur={(e) => commit(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-          }}
-          aria-label="Item slots"
-          className="w-full text-center bg-transparent font-black text-lg text-[#46223e]
-                     focus:outline-none caret-[#B02E7A] select-all"
-          style={{ fontFamily: 'var(--font-headline)' }}
-        />
-      </motion.div>
-      <motion.button
-        type="button"
-        onClick={() => onChange(Math.min(99, value + 1))}
-        whileHover={{ scale: 1.12 }}
-        whileTap={{ scale: 0.88 }}
-        transition={SPRING}
-        aria-label="Increase item slots"
-        className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
-                   flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
-                   transition-colors duration-200 cursor-pointer focus:outline-none
-                   focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
-      >
-        +
-      </motion.button>
+    <div className="w-16 h-8 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner">
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={draft ?? value}
+        onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
+        onBlur={(e) => commit(e.target.value)}
+        onFocus={(e) => e.target.select()}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+        aria-label="Max copies"
+        className="w-full text-center bg-transparent font-black text-base text-[#46223e]
+                   focus:outline-none caret-[#B02E7A] select-all"
+        style={{ fontFamily: 'var(--font-headline)' }}
+      />
     </div>
   )
 }
@@ -401,6 +465,11 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
     }
     setOverlayState('idle')
   }
+
+  // Clamp maxCopies when itemSlots shrinks below it (∞ is exempt)
+  useEffect(() => {
+    if (maxCopies !== null && maxCopies > itemSlots) setMaxCopies(itemSlots)
+  }, [itemSlots, maxCopies])
 
   // Cleanup on unmount
   useEffect(() => () => { stepTimers.current.forEach(clearTimeout) }, [])
@@ -664,81 +733,67 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="mt-4 flex items-center justify-between gap-3"
+                    className="mt-4 flex flex-col gap-2"
                   >
-                    <span className="text-xs font-bold text-[#784e6c] shrink-0">Max copies</span>
-                    <div className="flex items-center gap-2">
-                      {/* Decrease / remove limit */}
-                      <motion.button
-                        type="button"
-                        onClick={() => setMaxCopies((c) => c === null ? null : Math.max(1, c - 1))}
-                        whileHover={{ scale: 1.12 }}
-                        whileTap={{ scale: 0.88 }}
-                        transition={SPRING}
-                        disabled={maxCopies === null}
-                        className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
-                                   flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
-                                   transition-colors duration-150 cursor-pointer focus:outline-none
-                                   focus:ring-2 focus:ring-[#B02E7A]/40 disabled:opacity-30 disabled:cursor-default shrink-0"
-                      >
-                        −
-                      </motion.button>
-
-                      {/* Input or ∞ display */}
-                      <div className="w-16 h-8 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner">
-                        {maxCopies === null ? (
-                          <span className="font-black text-lg text-[#B02E7A]"
-                                style={{ fontFamily: 'var(--font-headline)' }}>∞</span>
-                        ) : (
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={maxCopies}
-                            onChange={(e) => {
-                              const n = parseInt(e.target.value.replace(/\D/g, ''), 10)
-                              if (!isNaN(n) && n >= 1) setMaxCopies(n)
-                            }}
-                            onFocus={(e) => e.target.select()}
-                            aria-label="Max copies"
-                            className="w-full text-center bg-transparent font-black text-base text-[#46223e]
-                                       focus:outline-none caret-[#B02E7A] select-all"
-                            style={{ fontFamily: 'var(--font-headline)' }}
-                          />
-                        )}
-                      </div>
-
-                      <motion.button
-                        type="button"
-                        onClick={() => setMaxCopies((c) => c === null ? 2 : c + 1)}
-                        whileHover={{ scale: 1.12 }}
-                        whileTap={{ scale: 0.88 }}
-                        transition={SPRING}
-                        className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
-                                   flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
-                                   transition-colors duration-150 cursor-pointer focus:outline-none
-                                   focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
-                      >
-                        +
-                      </motion.button>
-
-                      {/* Reset to ∞ */}
-                      {maxCopies !== null && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-bold text-[#784e6c] shrink-0">Max copies</span>
+                      <div className="flex items-center gap-2">
+                        {/* Decrease / remove limit */}
                         <motion.button
                           type="button"
-                          onClick={() => setMaxCopies(null)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
+                          onClick={() => setMaxCopies((c) => c === null ? null : Math.max(1, c - 1))}
+                          whileHover={{ scale: 1.12 }}
+                          whileTap={{ scale: 0.88 }}
                           transition={SPRING}
-                          title="Set to unlimited"
-                          className="text-[10px] font-black text-[#00675f] bg-[#edfff9]
-                                     px-2 py-1 rounded-full hover:bg-[#56f1e0]/30
-                                     transition-colors duration-150 cursor-pointer shrink-0"
+                          disabled={maxCopies === null}
+                          className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
+                                     flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                                     transition-colors duration-150 cursor-pointer focus:outline-none
+                                     focus:ring-2 focus:ring-[#B02E7A]/40 disabled:opacity-30 disabled:cursor-default shrink-0"
                         >
-                          ∞
+                          −
                         </motion.button>
-                      )}
+
+                        {/* Input or ∞ display */}
+                        <MaxCopiesInput value={maxCopies} onChange={setMaxCopies} max={itemSlots} />
+
+                        <motion.button
+                          type="button"
+                          onClick={() => setMaxCopies((c) => c === null ? 2 : Math.min(itemSlots, c + 1))}
+                          whileHover={{ scale: 1.12 }}
+                          whileTap={{ scale: 0.88 }}
+                          transition={SPRING}
+                          className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
+                                     flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                                     transition-colors duration-150 cursor-pointer focus:outline-none
+                                     focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
+                        >
+                          +
+                        </motion.button>
+
+                        {/* Reset to ∞ */}
+                        {maxCopies !== null && (
+                          <motion.button
+                            type="button"
+                            onClick={() => setMaxCopies(null)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            transition={SPRING}
+                            title="Set to unlimited"
+                            className="text-[10px] font-black text-[#00675f] bg-[#edfff9]
+                                       px-2 py-1 rounded-full hover:bg-[#56f1e0]/30
+                                       transition-colors duration-150 cursor-pointer shrink-0"
+                          >
+                            ∞
+                          </motion.button>
+                        )}
+                      </div>
                     </div>
+                    {maxCopies !== null && (
+                      <p className="text-[10px] font-semibold text-[#b48aaa] text-right">
+                        Limited to {itemSlots} item slots if specific number set
+                      </p>
+                    )}
                   </motion.div>
                 )}
               </OptimizerCard>
@@ -757,6 +812,7 @@ export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
                 <SlotCounter
                   value={itemSlots}
                   onChange={setItemSlots}
+                  max={50}
                 />
               </OptimizerCard>
 
