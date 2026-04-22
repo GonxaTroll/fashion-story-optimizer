@@ -9,6 +9,7 @@ class SignUpRequest(BaseModel):
     password: str = Field(min_length=8)
     name: str = Field(min_length=1)
     boutique_name: str = Field(min_length=1)
+    item_slots: int = Field(default=24, ge=1)
 
 
 class SignInRequest(BaseModel):
@@ -29,6 +30,7 @@ class UserResponse(BaseModel):
     notifications: bool
     dark_mode: bool
     stay_playful: bool
+    item_slots: int
 
 
 class PasswordChangeRequest(BaseModel):
@@ -43,6 +45,7 @@ class ProfileUpdateRequest(BaseModel):
     notifications: bool | None = None
     dark_mode: bool | None = None
     stay_playful: bool | None = None
+    item_slots: int | None = Field(default=None, ge=1)
 
 
 class ScheduleUpdateRequest(BaseModel):

@@ -27,6 +27,7 @@ def init_db() -> None:
                 notifications BOOLEAN   NOT NULL DEFAULT true,
                 dark_mode     BOOLEAN   NOT NULL DEFAULT false,
                 stay_playful  BOOLEAN   NOT NULL DEFAULT true,
+                item_slots    INTEGER   NOT NULL DEFAULT 24,
                 created_at    TIMESTAMP NOT NULL DEFAULT current_timestamp
             )
         """)
@@ -45,6 +46,13 @@ def init_db() -> None:
         ).fetchall()}
         if "slot" not in existing:
             conn.execute("ALTER TABLE optimization_results ADD COLUMN slot INTEGER DEFAULT 1")
+
+        # Migrate existing DBs that lack the item_slots column
+        user_cols = {row[0] for row in conn.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"
+        ).fetchall()}
+        if "item_slots" not in user_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN item_slots INTEGER DEFAULT 24")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_schedule (
                 user_id     VARCHAR NOT NULL,
@@ -61,7 +69,7 @@ def init_db() -> None:
                 repeat_items         BOOLEAN   NOT NULL,
                 slots                INTEGER   NOT NULL CHECK (slots >= 1),
                 optimization_goal    VARCHAR[] NOT NULL CHECK (len(optimization_goal) >= 1),
-                -- valid values per element: 'revenue', 'xp', 'gems'
+                -- valid values per element: 'revenue', 'xp'
                 PRIMARY KEY (user_id, optimization_date)
             )
         """)

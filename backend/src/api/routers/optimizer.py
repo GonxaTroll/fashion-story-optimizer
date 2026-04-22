@@ -21,11 +21,11 @@ router = APIRouter(prefix="/optimize", tags=["optimize"])
 
 N_DAYS = 7  # weekly scheduling horizon
 
-# Map frontend goal labels to catalog column names
+# Map frontend goal labels to catalog column names.
+# "revenue" optimizes for benefit (revenue - cost), not gross revenue.
 _GOAL_COLUMN: dict[str, str] = {
-    "revenue": "revenue",
+    "revenue": "benefit",
     "xp": "xp",
-    "gems": "revenue",  # not yet supported — fall back to revenue
 }
 
 

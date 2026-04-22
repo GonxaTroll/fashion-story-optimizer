@@ -25,8 +25,8 @@ def signup(body: SignUpRequest, conn: duckdb.DuckDBPyConnection = Depends(get_db
     user_id = body.email
     password_hash = hash_password(body.password)
     conn.execute(
-        "INSERT INTO users (user_id, name, boutique_name, password_hash) VALUES (?, ?, ?, ?)",
-        [user_id, body.name, body.boutique_name, password_hash],
+        "INSERT INTO users (user_id, name, boutique_name, password_hash, item_slots) VALUES (?, ?, ?, ?, ?)",
+        [user_id, body.name, body.boutique_name, password_hash, body.item_slots],
     )
     return TokenResponse(access_token=create_access_token(user_id))
 
@@ -55,7 +55,7 @@ def me(
     row = conn.execute(
         """
         SELECT user_id, name, boutique_name, bio,
-               notifications, dark_mode, stay_playful
+               notifications, dark_mode, stay_playful, item_slots
         FROM users WHERE user_id = ?
         """,
         [user_id],
@@ -72,6 +72,7 @@ def me(
         notifications=row[4],
         dark_mode=row[5],
         stay_playful=row[6],
+        item_slots=row[7],
     )
 
 
@@ -114,7 +115,7 @@ def update_me(
     row = conn.execute(
         """
         SELECT user_id, name, boutique_name, bio,
-               notifications, dark_mode, stay_playful
+               notifications, dark_mode, stay_playful, item_slots
         FROM users WHERE user_id = ?
         """,
         [user_id],
@@ -131,4 +132,5 @@ def update_me(
         notifications=row[4],
         dark_mode=row[5],
         stay_playful=row[6],
+        item_slots=row[7],
     )

@@ -329,13 +329,22 @@ interface Props {
 }
 
 export default function OptimizerPage({ onSignOut, onNavigate }: Props) {
-  const { name: currentUserName } = useCurrentUser()
+  const { name: currentUserName, item_slots: defaultItemSlots } = useCurrentUser()
   /* Optimizer controls */
   const [orderFull, setOrderFull]     = useState(true)
   const [sameHour, setSameHour]       = useState(false)
   const [repeatItems, setRepeatItems] = useState(false)
   const [maxCopies, setMaxCopies]     = useState<number | null>(null) // null = infinite
   const [itemSlots, setItemSlots]     = useState(24)
+
+  // Once the user profile loads, seed itemSlots from their saved default (only on first load)
+  const slotsSyncedRef = useRef(false)
+  useEffect(() => {
+    if (!slotsSyncedRef.current && defaultItemSlots !== null) {
+      setItemSlots(defaultItemSlots)
+      slotsSyncedRef.current = true
+    }
+  }, [defaultItemSlots])
   const [maxTime, setMaxTime]         = useState(5) // minutes
   const [goals, setGoals]             = useState<Goal[]>(['Revenue'])
 

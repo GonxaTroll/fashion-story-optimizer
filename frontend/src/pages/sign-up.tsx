@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Mail, Lock, ArrowRight, Eye, EyeOff, User, Store } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Eye, EyeOff, User, Store, LayoutGrid } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -15,6 +15,7 @@ export default function SignUpPage({ onSignUp, onGoToSignIn }: Props) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [name, setName] = useState('')
   const [boutiqueName, setBoutiqueName] = useState('')
+  const [itemSlots, setItemSlots] = useState(24)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -48,6 +49,7 @@ export default function SignUpPage({ onSignUp, onGoToSignIn }: Props) {
           password,
           name,
           boutique_name: boutiqueName,
+          item_slots: itemSlots,
         }),
       })
 
@@ -145,6 +147,53 @@ export default function SignUpPage({ onSignUp, onGoToSignIn }: Props) {
                 required
                 className="w-full bg-[#ffecf5] border-2 border-transparent rounded-2xl px-5 py-3.5 text-[#46223e] placeholder:text-[#d09ec0] focus:outline-none focus:border-[#B02E7A]/30 focus:ring-0 soft-well transition-all duration-150 text-sm disabled:opacity-50 cursor-text"
               />
+            </div>
+
+            {/* Item Slots */}
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-[#784e6c] ml-1">
+                <LayoutGrid className="w-3 h-3" aria-hidden="true" />
+                Item Slots
+              </label>
+              <p className="text-[10px] font-medium text-[#966988] ml-1">How many items your boutique can display at once</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setItemSlots((s) => Math.max(1, s - 1))}
+                  disabled={loading}
+                  aria-label="Decrease item slots"
+                  className="w-9 h-9 rounded-full bg-[#ffecf5] text-[#B02E7A] font-black text-base
+                             flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                             transition-colors duration-200 cursor-pointer focus:outline-none
+                             focus:ring-2 focus:ring-[#B02E7A]/30 shrink-0 disabled:opacity-50"
+                >−</button>
+                <div className="flex-1 h-11 rounded-2xl bg-[#ffecf5] flex items-center justify-center shadow-inner">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={itemSlots}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value.replace(/\D/g, ''), 10)
+                      if (!isNaN(n)) setItemSlots(Math.max(1, Math.min(99, n)))
+                    }}
+                    disabled={loading}
+                    aria-label="Item slots"
+                    className="w-full text-center bg-transparent font-black text-lg text-[#46223e]
+                               focus:outline-none caret-[#B02E7A] select-all disabled:opacity-50"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setItemSlots((s) => Math.min(99, s + 1))}
+                  disabled={loading}
+                  aria-label="Increase item slots"
+                  className="w-9 h-9 rounded-full bg-[#ffecf5] text-[#B02E7A] font-black text-base
+                             flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                             transition-colors duration-200 cursor-pointer focus:outline-none
+                             focus:ring-2 focus:ring-[#B02E7A]/30 shrink-0 disabled:opacity-50"
+                >+</button>
+              </div>
             </div>
 
             {/* Email */}

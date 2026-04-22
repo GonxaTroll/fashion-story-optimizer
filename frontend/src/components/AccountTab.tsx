@@ -31,6 +31,7 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
   const [name, setName]               = useState('')
   const [boutiqueName, setBoutiqueName] = useState('')
   const [bio, setBio]                  = useState('')
+  const [itemSlots, setItemSlots]      = useState(24)
   const [saving, setSaving]            = useState(false)
   const [loadError, setLoadError]      = useState('')
   const profileSaved                   = useSaved()
@@ -64,6 +65,7 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
         setName(data.name ?? '')
         setBoutiqueName(data.boutique_name ?? '')
         setBio(data.bio ?? '')
+        setItemSlots(data.item_slots ?? 24)
         setNotifications(data.notifications ?? true)
         setDarkMode(data.dark_mode ?? false)
         setStayPlayful(data.stay_playful ?? true)
@@ -86,7 +88,7 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
     if (saving) return
     setSaving(true)
     try {
-      await patchMe({ name, boutique_name: boutiqueName, bio })
+      await patchMe({ name, boutique_name: boutiqueName, bio, item_slots: itemSlots })
       profileSaved.trigger()
     } catch {
       // surface nothing — user can retry
@@ -189,6 +191,49 @@ export default function AccountTab({ onSignOut }: AccountTabProps) {
         </div>
         <div className="py-5 border-b border-[#ffecf5]">
           <PlayfulInput id="bio" label="Bio" placeholder="Tell the fashion world about you…" value={bio} onChange={setBio} multiline />
+        </div>
+
+        <div className="py-5 border-b border-[#ffecf5]">
+          <p className="text-xs font-bold text-[#784e6c] mb-2">Default Item Slots</p>
+          <p className="text-[10px] font-medium text-[#b48aaa] mb-3">How many items your boutique can display at once</p>
+          <div className="flex items-center gap-2">
+            <motion.button
+              type="button"
+              onClick={() => setItemSlots((s) => Math.max(1, s - 1))}
+              whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }} transition={SPRING}
+              aria-label="Decrease item slots"
+              className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
+                         flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                         transition-colors duration-200 cursor-pointer focus:outline-none
+                         focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
+            >−</motion.button>
+            <div className="w-16 h-9 rounded-full bg-[#FFF0F5] flex items-center justify-center shadow-inner">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={itemSlots}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value.replace(/\D/g, ''), 10)
+                  if (!isNaN(n)) setItemSlots(Math.max(1, Math.min(99, n)))
+                }}
+                aria-label="Default item slots"
+                className="w-full text-center bg-transparent font-black text-lg text-[#46223e]
+                           focus:outline-none caret-[#B02E7A] select-all"
+                style={{ fontFamily: 'var(--font-headline)' }}
+              />
+            </div>
+            <motion.button
+              type="button"
+              onClick={() => setItemSlots((s) => Math.min(99, s + 1))}
+              whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.88 }} transition={SPRING}
+              aria-label="Increase item slots"
+              className="w-8 h-8 rounded-full bg-[#FFF0F5] text-[#B02E7A] font-black text-base
+                         flex items-center justify-center hover:bg-[#B02E7A] hover:text-white
+                         transition-colors duration-200 cursor-pointer focus:outline-none
+                         focus:ring-2 focus:ring-[#B02E7A]/40 shrink-0"
+            >+</motion.button>
+          </div>
         </div>
 
         <div className="pt-5 flex items-center gap-4">
